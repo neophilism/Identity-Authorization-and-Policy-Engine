@@ -4,14 +4,16 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 8,
-  "observedAt": "2026-10-26T18:50:00Z",
+  "observedAt": "2026-10-26T18:52:47Z",
   "units": [
     {
       "id": "IAP-001",
       "title": "Scoped actors and fail-closed role authorization",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1
+      ],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": [],
@@ -19,14 +21,16 @@
         "Scoped actors and fail-closed role authorization"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "library_implemented_local_tests_passed"
     },
     {
       "id": "IAP-002",
       "title": "Signed purpose and resource capabilities",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1
+      ],
       "dependsOn": [
         "IAP-001"
       ],
@@ -36,14 +40,16 @@
         "Signed purpose and resource capabilities"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "library_implemented_local_tests_passed"
     },
     {
       "id": "IAP-003",
       "title": "Revocation and epoch invalidation",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        1
+      ],
       "dependsOn": [
         "IAP-002"
       ],
@@ -53,7 +59,7 @@
         "Revocation and epoch invalidation"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "library_implemented_local_tests_passed"
     },
     {
       "id": "IAP-004",
@@ -143,5 +149,11 @@
       "implementationStatus": "planned"
     }
   ],
-  "pullRequests": []
+  "pullRequests": [
+    {
+      "number": 1,
+      "state": "open",
+      "url": "https://github.com/neophilism/Identity-Authorization-and-Policy-Engine/pull/1"
+    }
+  ]
 }
