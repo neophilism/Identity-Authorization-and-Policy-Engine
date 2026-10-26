@@ -11,6 +11,10 @@
     "./contracts": {
       "types": "./dist/contracts.d.ts",
       "default": "./dist/contracts.js"
+    },
+    "./intake-service-adapter": {
+      "types": "./dist/intake-service-adapter.d.ts",
+      "default": "./dist/intake-service-adapter.js"
     }
   },
   "engines": {
