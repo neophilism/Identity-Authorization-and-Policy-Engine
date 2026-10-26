@@ -149,11 +149,6 @@
       "implementationStatus": "planned"
     }
   ],
-  "pullRequests": [
-    {
-      "number": 1,
-      "state": "open",
-      "url": "https://github.com/neophilism/Identity-Authorization-and-Policy-Engine/pull/1"
-    }
-  ]
+  "pullRequests": [],
+  "scopeNote": "Actual PR #1 contributes to the first three units; live GitHub remains authority for state. No incomplete normalized PR observation is stored."
 }
