@@ -1,0 +1,21 @@
+import{invariant,nonempty,validTime,digest}from'./contracts.ts';import type{Actor,Scope}from'./contracts.ts';import{tokenHash}from'./index.ts';
+export type IntakeServiceMapping=Scope&{connectionId:string;origin:string;credentialFingerprint:string;actorId:string;localRoles:readonly('viewer'|'researcher'|'operator')[];requiredScopes:readonly string[];supportedVersions:readonly string[];epoch:number;enabled:boolean;};
+export type VerifiedService=Scope&{actor:Actor;connectionId:string;actorEpoch:number;verifiedAt:string;upstreamVersion:string;upstreamScopeDigest:string;};
+export type CapabilityTransport=(url:string,options:{method:'GET';headers:Readonly<Record<string,string>>;redirect:'manual';signal:AbortSignal})=>Promise<Response>;
+/** Trusted configuration resolves a managed service credential. This is not end-user login/federation. */
+export async function verifyIntakeService(mapping:IntakeServiceMapping,readManagedCredential:(connectionId:string)=>Promise<string>,now:string,transport:CapabilityTransport=fetch):Promise<VerifiedService>{
+ validTime(now);invariant(mapping.enabled&&Number.isSafeInteger(mapping.epoch)&&mapping.epoch>0,'connection_disabled','Managed service connection is not enabled');nonempty(mapping.connectionId,'connection',128);nonempty(mapping.actorId,'service actor',128);nonempty(mapping.tenantId,'tenant',128);nonempty(mapping.projectId,'project',128);
+ const url=new URL(mapping.origin);invariant(url.protocol==='https:'&&!url.username&&!url.password&&url.pathname==='/'&&!url.search&&!url.hash,'invalid_origin','Use an explicitly configured HTTPS origin');
+ invariant(mapping.localRoles.length>0&&mapping.localRoles.every(r=>['viewer','researcher','operator'].includes(r)),'invalid_mapping','Managed service cannot acquire owner authority');invariant(/^[a-f0-9]{64}$/.test(mapping.credentialFingerprint),'invalid_mapping','Managed credential fingerprint required');
+ const token=await readManagedCredential(mapping.connectionId);invariant(typeof token==='string'&&token.length>=32&&token.length<=512&&!/[\r\n]/.test(token)&&tokenHash(token)===mapping.credentialFingerprint,'credential_mismatch','Credential does not match the configured connection');
+ const response=await transport(new URL('/api/v1/capabilities',url).href,{method:'GET',headers:{authorization:'Bearer '+token,accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000)});
+ invariant(response.status===200&&!response.redirected,'upstream_denied','Upstream service authentication failed');invariant(response.body,'invalid_capabilities','Capability response body missing');const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
+ try{for(;;){const r=await reader.read();if(r.done)break;size+=r.value.byteLength;invariant(size<=65536,'invalid_capabilities','Capability response exceeds64KiB');chunks.push(r.value);}}finally{await reader.cancel();}
+ let body:Record<string,unknown>;try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'))as Record<string,unknown>;}catch{throw new Error('Invalid capability response');}
+ const data=body.data as Record<string,unknown>|undefined,engine=data?.engine as Record<string,unknown>|undefined,auth=data?.authentication as Record<string,unknown>|undefined;
+ invariant(data?.schemaVersion===1&&data.apiVersion==='v1'&&engine?.service==='secure-intake-case-workflow-engine'&&typeof engine.version==='string'&&mapping.supportedVersions.includes(engine.version),'incompatible_upstream','Unsupported intake capability contract');
+ const scopes=auth?.grantedScopes;invariant(auth?.scheme==='bearer'&&auth.tenantSource==='api_client'&&Array.isArray(scopes)&&scopes.length<=200&&scopes.every(s=>typeof s==='string'&&s.length<=128)&&mapping.requiredScopes.every(s=>scopes.includes(s)),'insufficient_upstream_scope','Managed credential lacks required capabilities');
+ // Capability discovery intentionally omits organization/client IDs. Only the pinned
+ // managed credential and trusted mapping establish the local service scope.
+ return{tenantId:mapping.tenantId,projectId:mapping.projectId,actor:{id:mapping.actorId,kind:'service',roles:[...mapping.localRoles]},connectionId:mapping.connectionId,actorEpoch:mapping.epoch,verifiedAt:now,upstreamVersion:engine.version,upstreamScopeDigest:digest([...scopes].sort())};
+}
