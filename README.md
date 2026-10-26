@@ -1,7 +1,13 @@
 # Identity, Authorization and Policy Engine
 
-Reusable tenant/project authorization, authenticated actor mapping, purpose-scoped capabilities and revocation. Deployment-specific institutions, research and policies belong in downstream deployments.
+Reusable tenant/project authorization, authenticated actor mapping, purpose-scoped signed capabilities and revocation. Deployment-specific policies and research belong in downstream applications.
 
-Implementation is proceeding in small tested pull requests. See `registry/prs.json` for the canonical plan once the first implementation PR lands. Implementation, automated tests, CI acceptance and live operation are tracked separately.
+```sh
+npm ci
+npm run check
+npm run build
+```
 
-The Public Accountability Machine consumes this engine after its dependency contract is ready.
+Initial library capabilities: trusted actor contexts, role authorization, human authority for administrative/release operations, signed purpose/resource grants, expiry, policy revisions and revocation epochs. Identity federation, durable administration, compartment projections and live service acceptance remain planned in [registry/prs.json](registry/prs.json).
+
+See [architecture](docs/ARCHITECTURE.md). Tests use fictional scopes and temporary keys. The Public Accountability Machine consumes this engine after its dependency contract is ready.

@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "repository": "neophilism/Identity-Authorization-and-Policy-Engine",
+  "roadmapVersion": 1,
+  "planVerified": true,
+  "plannedPrCount": 8,
+  "observedAt": "2026-10-26T18:52:47Z",
+  "units": [
+    {
+      "id": "IAP-001",
+      "title": "Scoped actors and fail-closed role authorization",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [
+        1
+      ],
+      "dependsOn": [],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Scoped actors and fail-closed role authorization"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "library_implemented_local_tests_passed"
+    },
+    {
+      "id": "IAP-002",
+      "title": "Signed purpose and resource capabilities",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [
+        1
+      ],
+      "dependsOn": [
+        "IAP-001"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Signed purpose and resource capabilities"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "library_implemented_local_tests_passed"
+    },
+    {
+      "id": "IAP-003",
+      "title": "Revocation and epoch invalidation",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [
+        1
+      ],
+      "dependsOn": [
+        "IAP-002"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Revocation and epoch invalidation"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "library_implemented_local_tests_passed"
+    },
+    {
+      "id": "IAP-004",
+      "title": "Identity federation and intake adapter",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "IAP-001"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Identity federation and intake adapter"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "IAP-005",
+      "title": "Persistent authorization administration and audit",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "IAP-003",
+        "IAP-004"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Persistent authorization administration and audit"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "IAP-006",
+      "title": "Compartment projections and policy inspector",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "IAP-005"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Compartment projections and policy inspector"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "IAP-007",
+      "title": "Service gateway and database isolation acceptance",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "IAP-005"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Service gateway and database isolation acceptance"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "planned"
+    },
+    {
+      "id": "IAP-008",
+      "title": "Reusable release and deployment acceptance",
+      "origin": "original",
+      "prs": [],
+      "contributingPrs": [],
+      "dependsOn": [
+        "IAP-006",
+        "IAP-007"
+      ],
+      "externalDependencies": [],
+      "externalPrerequisites": [],
+      "scope": [
+        "Reusable release and deployment acceptance"
+      ],
+      "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
+      "implementationStatus": "planned"
+    }
+  ],
+  "pullRequests": [],
+  "scopeNote": "Actual PR #1 contributes to the first three units; live GitHub remains authority for state. No incomplete normalized PR observation is stored."
+}
