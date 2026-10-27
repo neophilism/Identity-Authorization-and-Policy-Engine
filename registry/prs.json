@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 8,
-  "observedAt": "2026-10-27T18:58:09Z",
+  "observedAt": "2026-10-27T19:53:48Z",
   "units": [
     {
       "id": "IAP-001",
@@ -87,7 +87,8 @@
       "origin": "original",
       "prs": [],
       "contributingPrs": [
-        4
+        4,
+        5
       ],
       "dependsOn": [
         "IAP-003",
@@ -99,7 +100,7 @@
         "Persistent authorization administration and audit"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "Partial PR4: Identity-owned durable monotonic policy/actor epochs and exact capability revocations, fixed trusted human administrator admission before cached lookup, immutable revision/idempotent audit/outbox commands and current-state capability verification under project serialization. Dynamic membership, federation, qualified host/key services, independent network contention and live acceptance remain pending. Final-head CI is separate from local test evidence."
+      "implementationStatus": "Partial PR4: Identity-owned durable monotonic policy/actor epochs and exact capability revocations, fixed trusted human administrator admission before cached lookup, immutable revision/idempotent audit/outbox commands and current-state capability verification under project serialization. Dynamic membership, federation, qualified host/key services, independent network contention and live acceptance remain pending. Final-head CI is separate from local test evidence. Partial PR5 adds disposable PostgreSQL17 restricted TCP-session tests for revision contention, directly observed verification lock waits followed by revocation/expiry, lost post-COMMIT acknowledgement/fresh pool and role/scope boundaries. Local ordinary/typecheck/build/registry pass; actual CI execution/final-head acceptance are separate. No production host/key/TLS/failover/throughput or live qualification. All five PostgreSQL17 network groups passed CI40573050463 on c25f03f472da86fc0a9f8f84395e68faf8f53b2d, with job122432072794 logs inspected. Final-head CI remains required; this is no production identity/deployment qualification."
     },
     {
       "id": "IAP-006",
@@ -123,7 +124,9 @@
       "title": "Service gateway and database isolation acceptance",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        5
+      ],
       "dependsOn": [
         "IAP-005"
       ],
@@ -133,7 +136,7 @@
         "Service gateway and database isolation acceptance"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Partial PR5 adds disposable PostgreSQL17 restricted TCP-session tests for revision contention, directly observed verification lock waits followed by revocation/expiry, lost post-COMMIT acknowledgement/fresh pool and role/scope boundaries. Local ordinary/typecheck/build/registry pass; actual CI execution/final-head acceptance are separate. No production host/key/TLS/failover/throughput or live qualification. All five PostgreSQL17 network groups passed CI40573050463 on c25f03f472da86fc0a9f8f84395e68faf8f53b2d, with job122432072794 logs inspected. Final-head CI remains required; this is no production identity/deployment qualification."
     },
     {
       "id": "IAP-008",

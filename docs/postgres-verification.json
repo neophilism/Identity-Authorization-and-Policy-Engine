@@ -1,0 +1,15 @@
+{
+  "ordinaryLocalGroupsPassed": 29,
+  "newNetworkGroups": 5,
+  "localNetworkExecution": "not_performed_no_PostgreSQL_or_Docker",
+  "actualNetworkCi": {
+    "source": "c25f03f472da86fc0a9f8f84395e68faf8f53b2d",
+    "run": 40573050463,
+    "job": 122432072794,
+    "testsPassed": 5,
+    "logsInspected": true
+  },
+  "finalHeadCi": "required_before_merge",
+  "runtimeSourceOrDependencyChanges": "none",
+  "productionAcceptance": "not_performed"
+}

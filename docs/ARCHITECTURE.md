@@ -21,3 +21,7 @@ The default transport remains host-configured HTTPS Fetch with manual redirects.
 ## Durable revocation administration
 
 [Revocations](REVOCATIONS.md) adds an opt-in Identity-owned operational database for policy/actor epoch changes, exact capability revocation and transactional audit/outbox. Verification reads current state and a post-load live clock under the same project lock. Host authentication, fixed administrator configuration and signing-key custody remain external trust boundaries. This is partial IAP-005 work, not federation, dynamic membership, a deployed gateway or distributed action fencing.
+
+## Independent database sessions
+
+POSTGRES_TESTS.md defines disposable PostgreSQL17 CI for revocation contenders, observed lock waits, current expiry/revocation, lost acknowledgements and restricted roles. This is distinct from embedded tests and production identity/key/deployment qualification. Actual final-head CI is required; no local network execution is claimed.
