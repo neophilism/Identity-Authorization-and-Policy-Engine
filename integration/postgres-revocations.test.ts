@@ -8,6 +8,8 @@ import {
   verifyAudit,
 } from "@accountability/evidence/database";
 import type { Database } from "@accountability/evidence/database";
+import { MembershipRegistry } from "../src/membership.ts";
+import type { Member } from "../src/membership.ts";
 import { RevocationRegistry } from "../src/revocations.ts";
 import type { RevocationState } from "../src/revocations.ts";
 import { issueCapability } from "../src/index.ts";
@@ -383,3 +385,158 @@ test(
     assert.equal((await f.sb.read(f.context)).revision, 1);
   },
 );
+
+function membership(f: Awaited<ReturnType<typeof fixture>>, db: Database) {
+  return new MembershipRegistry(
+    db,
+    {
+      tenantId: f.context.tenantId,
+      projectId: f.id,
+      bootstrapOwnerIds: ["owner"],
+    },
+    () => f.clock.now,
+  );
+}
+const anotherOwner = {
+  type: "set-member" as const,
+  id: "second",
+  kind: "human" as const,
+  roles: ["owner" as const],
+};
+test(
+  "independent membership owner-removal contenders preserve an active human owner",
+  { timeout: 20000 },
+  async (t) => {
+    const f = await fixture(t, "membership-owner-contenders"),
+      ma = membership(f, f.a),
+      mb = membership(f, f.b);
+    const second = {
+      ...f.context,
+      actor: { id: "second", kind: "human" as const, roles: [] },
+    };
+    await ma.initialize(f.context, "membership-init");
+    await ma.apply(f.context, 1, anotherOwner, "add-second");
+    const results = await Promise.allSettled([
+      ma.apply(
+        f.context,
+        2,
+        { type: "disable-member", id: "owner" },
+        "remove-first",
+      ),
+      mb.apply(
+        second,
+        2,
+        { type: "disable-member", id: "second" },
+        "remove-second",
+      ),
+    ]);
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+    const denied = results.find(
+      (r) => r.status === "rejected",
+    ) as PromiseRejectedResult;
+    assert.equal(denied.reason.code, "revision_conflict");
+    const survivor = results[0]!.status === "fulfilled" ? second : f.context;
+    const state = await mb.read(survivor);
+    assert.equal(state.revision, 3);
+    assert.equal(
+      state.members.filter((m) => !m.disabled && m.roles.includes("owner"))
+        .length,
+      1,
+    );
+    await assert.rejects(
+      mb.apply(
+        survivor,
+        3,
+        { type: "disable-member", id: survivor.actor.id },
+        "last-owner",
+      ),
+      { code: "last_owner" },
+    );
+    await scoped(f.b, survivor, async (tx) => {
+      assert.ok(verifyAudit(await tx.audits()));
+      assert.equal(
+        (await tx.audits()).filter(
+          (a) => a.type === "identity.membership.changed",
+        ).length,
+        2,
+      );
+    });
+  },
+);
+for (const mode of ["cached-command", "role-resolution"] as const) {
+  test(
+    `current membership denies ${mode} after directly observed PostgreSQL owner-removal wait`,
+    { timeout: 20000 },
+    async (t) => {
+      const f = await fixture(t, "membership-lock-" + mode),
+        ma = membership(f, f.a),
+        mb = membership(f, f.b);
+      await ma.initialize(f.context, "membership-init");
+      await ma.apply(f.context, 1, anotherOwner, "add-second");
+      const locked = gate(),
+        release = gate();
+      // Fixture-only policy mutation under the real project lock, not an administration API.
+      const hold = scoped(f.a, f.context, async (tx) => {
+        await tx.audit("fixture.membership-lock", { fixture: true });
+        const key = digest({ aggregate: "identity-membership" });
+        const row = await tx.get<{ members: Member[] }>(
+          "identity-membership",
+          key,
+        );
+        await tx.put("identity-membership", key, row!.revision, {
+          members: row!.value.members.map((m) =>
+            m.id === "owner" ? { ...m, disabled: true, epoch: m.epoch + 1 } : m,
+          ),
+        });
+        locked.resolve();
+        await release.promise;
+      });
+      let pending: Promise<unknown> | undefined;
+      try {
+        await Promise.race([locked.promise, hold]);
+        pending =
+          mode === "cached-command"
+            ? mb.apply(f.context, 1, anotherOwner, "add-second")
+            : mb.resolve(f.context, "admin");
+        const result = pending.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        let observed = false;
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline) {
+          const r = await admin.transaction((q) =>
+            q.query<{ blocked: boolean }>(
+              "SELECT EXISTS(SELECT FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock' AND cardinality(pg_blocking_pids(pid))>0) AS blocked",
+              [f.id + "-b"],
+            ),
+          );
+          if (r.rows[0]!.blocked) {
+            observed = true;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        assert.equal(
+          observed,
+          true,
+          "Must observe actual backend lock contention",
+        );
+        release.resolve();
+        await hold;
+        const r = await result;
+        assert.ok("error" in r);
+        assert.equal((r.error as { code: string }).code, "member_denied");
+        const second = {
+          ...f.context,
+          actor: { id: "second", kind: "human" as const, roles: [] },
+        };
+        assert.equal((await mb.read(second)).revision, 3);
+      } finally {
+        release.resolve();
+        await hold;
+        await pending?.catch(() => {});
+      }
+    },
+  );
+}
