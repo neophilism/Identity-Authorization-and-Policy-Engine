@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 8,
-  "observedAt": "2026-10-26T18:52:47Z",
+  "observedAt": "2026-10-27T10:05:24Z",
   "units": [
     {
       "id": "IAP-001",
@@ -66,7 +66,10 @@
       "title": "Identity federation and intake adapter",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [],
+      "contributingPrs": [
+        2,
+        3
+      ],
       "dependsOn": [
         "IAP-001"
       ],
@@ -76,7 +79,7 @@
         "Identity federation and intake adapter"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "planned"
+      "implementationStatus": "Partial: merged PR2 supplies pinned managed intake service verification with explicit local non-owner identity mapping; it does not authenticate end users. PR3 snapshots trusted mappings and bounds credential/transport/body verification with cancellation, finite byte/chunk budgets, strict JSON UTF8 and sanitized failures. End-user federation, member provisioning and live host integration remain pending."
     },
     {
       "id": "IAP-005",
@@ -150,5 +153,5 @@
     }
   ],
   "pullRequests": [],
-  "scopeNote": "Actual PR #1 contributes to the first three units; live GitHub remains authority for state. No incomplete normalized PR observation is stored."
+  "scopeNote": "PR1 contributes to IAP-001/002/003; PR2 and PR3 contribute to IAP-004. Live GitHub remains authority; implementation/test/CI/live evidence are separate."
 }
