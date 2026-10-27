@@ -19,6 +19,10 @@
     "./revocations": {
       "types": "./dist/revocations.d.ts",
       "default": "./dist/revocations.js"
+    },
+    "./membership": {
+      "types": "./dist/membership.d.ts",
+      "default": "./dist/membership.js"
     }
   },
   "engines": {

@@ -4,22 +4,18 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 8,
-  "observedAt": "2026-10-27T19:53:48Z",
+  "observedAt": "2026-10-27T20:59:52Z",
   "units": [
     {
       "id": "IAP-001",
       "title": "Scoped actors and fail-closed role authorization",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [
-        1
-      ],
+      "contributingPrs": [1],
       "dependsOn": [],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Scoped actors and fail-closed role authorization"
-      ],
+      "scope": ["Scoped actors and fail-closed role authorization"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "library_implemented_local_tests_passed"
     },
@@ -28,17 +24,11 @@
       "title": "Signed purpose and resource capabilities",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [
-        1
-      ],
-      "dependsOn": [
-        "IAP-001"
-      ],
+      "contributingPrs": [1],
+      "dependsOn": ["IAP-001"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Signed purpose and resource capabilities"
-      ],
+      "scope": ["Signed purpose and resource capabilities"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "library_implemented_local_tests_passed"
     },
@@ -47,17 +37,11 @@
       "title": "Revocation and epoch invalidation",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [
-        1
-      ],
-      "dependsOn": [
-        "IAP-002"
-      ],
+      "contributingPrs": [1],
+      "dependsOn": ["IAP-002"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Revocation and epoch invalidation"
-      ],
+      "scope": ["Revocation and epoch invalidation"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "library_implemented_local_tests_passed"
     },
@@ -66,18 +50,11 @@
       "title": "Identity federation and intake adapter",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [
-        2,
-        3
-      ],
-      "dependsOn": [
-        "IAP-001"
-      ],
+      "contributingPrs": [2, 3],
+      "dependsOn": ["IAP-001"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Identity federation and intake adapter"
-      ],
+      "scope": ["Identity federation and intake adapter"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "Partial: merged PR2 supplies pinned managed intake service verification with explicit local non-owner identity mapping; it does not authenticate end users. PR3 snapshots trusted mappings and bounds credential/transport/body verification with cancellation, finite byte/chunk budgets, strict JSON UTF8 and sanitized failures. End-user federation, member provisioning and live host integration remain pending."
     },
@@ -86,21 +63,13 @@
       "title": "Persistent authorization administration and audit",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [
-        4,
-        5
-      ],
-      "dependsOn": [
-        "IAP-003",
-        "IAP-004"
-      ],
+      "contributingPrs": [4, 5],
+      "dependsOn": ["IAP-003", "IAP-004"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Persistent authorization administration and audit"
-      ],
+      "scope": ["Persistent authorization administration and audit"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "Partial PR4: Identity-owned durable monotonic policy/actor epochs and exact capability revocations, fixed trusted human administrator admission before cached lookup, immutable revision/idempotent audit/outbox commands and current-state capability verification under project serialization. Dynamic membership, federation, qualified host/key services, independent network contention and live acceptance remain pending. Final-head CI is separate from local test evidence. Partial PR5 adds disposable PostgreSQL17 restricted TCP-session tests for revision contention, directly observed verification lock waits followed by revocation/expiry, lost post-COMMIT acknowledgement/fresh pool and role/scope boundaries. Local ordinary/typecheck/build/registry pass; actual CI execution/final-head acceptance are separate. No production host/key/TLS/failover/throughput or live qualification. All five PostgreSQL17 network groups passed CI40573050463 on c25f03f472da86fc0a9f8f84395e68faf8f53b2d, with job122432072794 logs inspected. Final-head CI remains required; this is no production identity/deployment qualification."
+      "implementationStatus": "Partial PR4: Identity-owned durable monotonic policy/actor epochs and exact capability revocations, fixed trusted human administrator admission before cached lookup, immutable revision/idempotent audit/outbox commands and current-state capability verification under project serialization. Dynamic membership, federation, qualified host/key services, independent network contention and live acceptance remain pending. Final-head CI is separate from local test evidence. Partial PR5 adds disposable PostgreSQL17 restricted TCP-session tests for revision contention, directly observed verification lock waits followed by revocation/expiry, lost post-COMMIT acknowledgement/fresh pool and role/scope boundaries. Local ordinary/typecheck/build/registry pass; actual CI execution/final-head acceptance are separate. No production host/key/TLS/failover/throughput or live qualification. All five PostgreSQL17 network groups passed CI40573050463 on c25f03f472da86fc0a9f8f84395e68faf8f53b2d, with job122432072794 logs inspected. Final-head CI remains required; this is no production identity/deployment qualification. WIP: bounded dynamic membership module with stored human-owner admission, last-owner protection and per-principal current-role resolution; first four restricted migration groups/typecheck pass. Further review/adversarial/package/current-head CI pending. No authenticated host or atomic membership/capability/external-action integration."
     },
     {
       "id": "IAP-006",
@@ -108,14 +77,10 @@
       "origin": "original",
       "prs": [],
       "contributingPrs": [],
-      "dependsOn": [
-        "IAP-005"
-      ],
+      "dependsOn": ["IAP-005"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Compartment projections and policy inspector"
-      ],
+      "scope": ["Compartment projections and policy inspector"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "planned"
     },
@@ -124,17 +89,11 @@
       "title": "Service gateway and database isolation acceptance",
       "origin": "original",
       "prs": [],
-      "contributingPrs": [
-        5
-      ],
-      "dependsOn": [
-        "IAP-005"
-      ],
+      "contributingPrs": [5],
+      "dependsOn": ["IAP-005"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Service gateway and database isolation acceptance"
-      ],
+      "scope": ["Service gateway and database isolation acceptance"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "Partial PR5 adds disposable PostgreSQL17 restricted TCP-session tests for revision contention, directly observed verification lock waits followed by revocation/expiry, lost post-COMMIT acknowledgement/fresh pool and role/scope boundaries. Local ordinary/typecheck/build/registry pass; actual CI execution/final-head acceptance are separate. No production host/key/TLS/failover/throughput or live qualification. All five PostgreSQL17 network groups passed CI40573050463 on c25f03f472da86fc0a9f8f84395e68faf8f53b2d, with job122432072794 logs inspected. Final-head CI remains required; this is no production identity/deployment qualification."
     },
@@ -144,15 +103,10 @@
       "origin": "original",
       "prs": [],
       "contributingPrs": [],
-      "dependsOn": [
-        "IAP-006",
-        "IAP-007"
-      ],
+      "dependsOn": ["IAP-006", "IAP-007"],
       "externalDependencies": [],
       "externalPrerequisites": [],
-      "scope": [
-        "Reusable release and deployment acceptance"
-      ],
+      "scope": ["Reusable release and deployment acceptance"],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
       "implementationStatus": "planned"
     }

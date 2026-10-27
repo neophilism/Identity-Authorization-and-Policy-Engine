@@ -1,0 +1,15 @@
+# Private project membership (partial IAP-005)
+
+`./membership` exports `MembershipRegistry` using the stable Evidence persistence SDK in Identity's OWN operational database. Do not connect it to another engine's database. Source is country-neutral and tests use fictional identities only.
+
+A trusted host authenticates actor kind and ID and supplies tenant/project/purpose/request/time. The module does NOT authenticate a principal. Initial creation requires a configured bootstrap ID with human owner authority. Creation grants only that invoking owner. After initialization the bootstrap list supplies no fallback authority: current enabled human owners stored in the aggregate administer membership. Incoming Context roles are ignored for administration, reads and resolution after bootstrap.
+
+`apply(context, expectedRevision, command, commandId)` sets a member's known roles or disables an existing member. Owner is human-only, at least one enabled human owner must remain, actor IDs are unique across kinds and can never change kind even after disablement. Re-enabling is explicit set-member. Each member change increments its epoch; this is membership metadata, NOT the separate capability revocation epoch. No record removal, automatic expiry or eviction is provided. The aggregate has 1024 member slots, 128-character IDs and a 1MiB budget; safe-integer exhaustion fails closed.
+
+Checked commands acquire the SDK project lock and reload stored owner authority BEFORE cached command acknowledgements. Expected revision, immutable history, audit and outbox changes are atomic in SQL. Authorized historical replay does not repeat a transition or become current policy. Current read/resolve use the same project lock. `resolve(context, action)` returns only the caller's stored roles, member epoch, containing policy revision and a post-load trusted clock. Full membership reads require current human owner authority. Returned values are independent copies, historical snapshots, not credentials or one-use permits.
+
+Host incoming authentication, correct actor identity mappings, current policy at EVERY action gateway, credential custody and qualified services remain mandatory. This module does not atomically combine external actions or RevocationRegistry verification with membership resolution. Old capabilities and prior resolved Contexts do not automatically acquire membership revision binding. Do not treat resolution followed by later execution as a distributed revocation fence. RevocationRegistry's fixed-list administration remains a separate accepted interface; changing membership does not mutate that list or its epochs.
+
+## Checkpoint
+
+Initial four actual canonical-migration/restricted authenticated PGlite groups and typecheck pass. This draft still requires more adversarial failure/capture tests, source review, installed-package verification and all current-head CI before acceptance. No new independent TCP-session, HTTP hosting, federation, identity proofing, production or live acceptance is claimed. Sending/publication/payment and paid infrastructure remain disabled.
