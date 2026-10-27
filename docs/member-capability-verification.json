@@ -1,0 +1,24 @@
+{
+  "stage": "local",
+  "testsPassed": 45,
+  "newRestrictedMigrationGroups": 6,
+  "sourceHashes": {
+    "src/membership.ts": "9bf406e3e10ff5be3dfb58755c06a8ca12b5441600f3673c3cc6c45047dd1366",
+    "src/revocations.ts": "5613d77b714ad48f08d120791de420613d19e670ef4b9757226f0967530d2ed6",
+    "src/stored-capability.ts": "8b8fb2e5973bf436a9966427392d1336cb324e4a7c02a0ef65cc446e06165bbd",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  },
+  "installedPackage": "All six new restricted-migration groups passed through freshly packed installed compiled public exports",
+  "finalHeadCi": "required",
+  "newCombinedNetworkScenarioLiveHost": "not_performed",
+  "limits": [
+    "Historical observation, no external action permit or distributed fence",
+    "Membership epoch and capability actor epoch are separate; re-enable may admit old unexpired grant",
+    "Host kind/id authentication and key custody mandatory; fixed-list revocation admin unchanged"
+  ],
+  "initialCi": {
+    "source": "622bfc1c6d89fe41ccbb1674ad0c32ddaed03f94",
+    "run": 40589981411,
+    "result": "check and postgres-contention success; final-head acceptance remains required"
+  }
+}

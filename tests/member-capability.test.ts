@@ -169,7 +169,6 @@ test("exact scope/kind/purpose/resource/profile and key bounds fail closed", asy
       f.key,
     ),
   );
-  assert.deepEqual(f.key, f.key); // Caller key remains usable after failures.
   await f.registry.verifyCapability(actor("reader"), f.token, expected, f.key);
 });
 test("membership re-enable does not silently synchronize the separate capability epoch", async (t) => {
