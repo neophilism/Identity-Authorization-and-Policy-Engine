@@ -15,6 +15,10 @@
     "./intake-service-adapter": {
       "types": "./dist/intake-service-adapter.d.ts",
       "default": "./dist/intake-service-adapter.js"
+    },
+    "./revocations": {
+      "types": "./dist/revocations.d.ts",
+      "default": "./dist/revocations.js"
     }
   },
   "engines": {
@@ -29,11 +33,15 @@
   },
   "devDependencies": {
     "@types/node": "26.6.5",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "@electric-sql/pglite": "0.5.12"
   },
   "files": [
     "dist",
     "README.md",
     "docs"
-  ]
+  ],
+  "dependencies": {
+    "@accountability/evidence": "github:neophilism/Evidence-Storage-and-Provenance-Engine#dce7105a70b42d77afe4cd48d34723331447037c"
+  }
 }

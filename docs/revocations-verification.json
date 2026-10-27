@@ -1,0 +1,20 @@
+{
+  "stage": "local",
+  "testsPassed": 28,
+  "newRestrictedMigrationGroups": 8,
+  "sourceHashes": {
+    "src/revocations.ts": "89aea7a33d5def38143a419c5b1a4f4a989fd27ea9407660ab9c9009e21f996c",
+    "src/index.ts": "86f73e1a2fc5d3fe0486429ed8cf5a1878f5cef4bb90197ce2265c20333754ce",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  },
+  "database": "Actual pinned canonical migration and restricted authenticated PGlite role",
+  "installedPackage": "All eight new groups executed through installed compiled public exports",
+  "finalHeadCi": "required_before_merge",
+  "networkContentionLiveIdentityDeployment": "not_performed",
+  "limits": [
+    "Fixed host administrator list, not dynamic member administration",
+    "Incoming host authentication and unique actor IDs across kinds remain mandatory",
+    "Verification snapshot is not distributed atomic action permission",
+    "No keys/tokens/credential issuance or storage, no send/publication"
+  ]
+}
