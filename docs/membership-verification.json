@@ -1,0 +1,23 @@
+{
+  "stage": "local",
+  "ordinaryTestsPassed": 39,
+  "newRestrictedMigrationGroups": 10,
+  "newPostgresGroups": "3 authored; actual CI execution pending",
+  "existingPostgresRegressions": 5,
+  "sourceHashes": {
+    "src/membership.ts": "196a2c6d8897ceef60c2774a9463a54e14b972f2154180844e73f3a050bffe6a",
+    "tests/membership.test.ts": "73ca404a791a1e11a66dc7873b28986e1623a370f806e32b4368c8e8c33073f8",
+    "integration/postgres-revocations.test.ts": "60d1b320da37877740ecceec79ed8699e1393e401bdd6ff7f4fde13a51364a6f",
+    "src/index.ts": "86f73e1a2fc5d3fe0486429ed8cf5a1878f5cef4bb90197ce2265c20333754ce",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  },
+  "installedPackage": "All ten membership groups passed through freshly packed, installed compiled public exports",
+  "finalHeadCi": "required_before_merge",
+  "liveHostIdentityGatewayQualification": "not_performed",
+  "limits": [
+    "Host authenticates kind/id; caller roles ignored only in membership module after bootstrap",
+    "Resolution is a historical snapshot, not a transferable credential or atomic external permission fence",
+    "Membership epochs are separate from capability revocation epochs",
+    "No HTTP host/invitations/credential issuance/compartments/sends/publication/payment"
+  ]
+}

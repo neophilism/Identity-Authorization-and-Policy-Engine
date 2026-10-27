@@ -11,12 +11,12 @@ import {
   validTime,
 } from "./contracts.ts";
 import type { Actor, Context, Json, Scope } from "./contracts.ts";
-export const MEMBERSHIP_ROLES = [
+export const MEMBERSHIP_ROLES = Object.freeze([
   "viewer",
   "researcher",
   "operator",
   "owner",
-] as const;
+] as const);
 export type MembershipRole = (typeof MEMBERSHIP_ROLES)[number];
 export type Member = Readonly<{
   id: string;
