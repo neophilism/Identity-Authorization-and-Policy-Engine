@@ -9,6 +9,7 @@ import { RevocationRegistry } from "../src/revocations.ts";
 import { issueCapability } from "../src/index.ts";
 import type { Capability } from "../src/index.ts";
 import type { Context } from "../src/contracts.ts";
+import { digest } from "../src/contracts.ts";
 const c: Context = {
   tenantId: "fiction",
   projectId: "identity",
@@ -317,25 +318,133 @@ test("lost commit acknowledgement replays durable revocation, while post-outbox 
   }
 });
 
-test("clock is sampled after policy loading, and captured key/context survive caller mutation", async t => {
- const f=await fixture(t);
- let switched=false;
- const db:Database={transaction:fn=>f.db.transaction(q=>fn({query:async <T>(sql:string,v?:unknown[])=>{
-  const r=await q.query<T>(sql,v);
-  if(sql.includes("SELECT")&&sql.includes("evidence_records")){switched=true;f.clock.now="2026-01-01T00:11:00Z";}
-  return r;
- }})),close:async()=>{}};
- await assert.rejects(new RevocationRegistry(db,f.policy,()=>f.clock.now).verify(viewer,f.token,expected,f.key),{code:"expired_capability"});
- assert.equal(switched,true);
- f.clock.now=c.now;
- let entered!:()=>void, release!:()=>void;
- const ready=new Promise<void>(r=>{entered=r;}), wait=new Promise<void>(r=>{release=r;});
- const delayed:Database={transaction:fn=>f.db.transaction(q=>fn({query:async <T>(sql:string,v?:unknown[])=>{
-  const r=await q.query<T>(sql,v);if(sql.includes("FOR UPDATE")){entered();await wait;}return r;
- }})),close:async()=>{}};
- const context=structuredClone(viewer), key=Uint8Array.from(f.key), wanted={...expected};
- const op=new RevocationRegistry(delayed,f.policy,()=>c.now).verify(context,f.token,wanted,key);
- await ready;
- (context.actor as {id:string}).id="different";key.fill(0);wanted.resourceId="different";release();
- assert.deepEqual(await op,profile);
+test("clock is sampled after policy loading, and captured key/context survive caller mutation", async (t) => {
+  const f = await fixture(t);
+  let switched = false;
+  const db: Database = {
+    transaction: (fn) =>
+      f.db.transaction((q) =>
+        fn({
+          query: async <T>(sql: string, v?: unknown[]) => {
+            const r = await q.query<T>(sql, v);
+            if (
+              sql.includes("SELECT") &&
+              sql.includes("FROM public.evidence_record")
+            ) {
+              switched = true;
+              f.clock.now = "2026-01-01T00:11:00Z";
+            }
+            return r;
+          },
+        }),
+      ),
+    close: async () => {},
+  };
+  await assert.rejects(
+    new RevocationRegistry(db, f.policy, () => f.clock.now).verify(
+      viewer,
+      f.token,
+      expected,
+      f.key,
+    ),
+    { code: "expired_capability" },
+  );
+  assert.equal(switched, true);
+  f.clock.now = c.now;
+  let entered!: () => void, release!: () => void;
+  const ready = new Promise<void>((r) => {
+      entered = r;
+    }),
+    wait = new Promise<void>((r) => {
+      release = r;
+    });
+  const delayed: Database = {
+    transaction: (fn) =>
+      f.db.transaction((q) =>
+        fn({
+          query: async <T>(sql: string, v?: unknown[]) => {
+            const r = await q.query<T>(sql, v);
+            if (sql.includes("FOR UPDATE")) {
+              entered();
+              await wait;
+            }
+            return r;
+          },
+        }),
+      ),
+    close: async () => {},
+  };
+  const context = structuredClone(viewer),
+    key = Uint8Array.from(f.key),
+    wanted = { ...expected };
+  const op = new RevocationRegistry(delayed, f.policy, () => c.now).verify(
+    context,
+    f.token,
+    wanted,
+    key,
+  );
+  await ready;
+  (context.actor as { id: string }).id = "different";
+  key.fill(0);
+  wanted.resourceId = "different";
+  release();
+  assert.deepEqual(await op, profile);
+});
+
+test("exhausted epochs and bounded registries reject rather than wrap or discard old revocations", async (t) => {
+  const f = await fixture(t),
+    id = digest({ aggregate: "identity-revocations" });
+  const cases = [
+    {
+      state: {
+        policyRevision: Number.MAX_SAFE_INTEGER,
+        actorEpochs: [],
+        revokedIds: [],
+      },
+      command: { type: "advance-policy" },
+      code: "revision_exhausted",
+    },
+    {
+      state: {
+        policyRevision: 1,
+        actorEpochs: [{ actorId: "reader", epoch: Number.MAX_SAFE_INTEGER }],
+        revokedIds: [],
+      },
+      command: { type: "advance-actor", actorId: "reader" },
+      code: "revision_exhausted",
+    },
+    {
+      state: {
+        policyRevision: 1,
+        actorEpochs: Array.from({ length: 1024 }, (_, i) => ({
+          actorId: `actor-${i}`,
+          epoch: 1,
+        })),
+        revokedIds: [],
+      },
+      command: { type: "advance-actor", actorId: "new" },
+      code: "registry_full",
+    },
+    {
+      state: {
+        policyRevision: 1,
+        actorEpochs: [],
+        revokedIds: Array.from({ length: 4096 }, (_, i) => `grant-${i}`),
+      },
+      command: { type: "revoke-capability", id: "new" },
+      code: "revocation_denied",
+    },
+  ];
+  for (const item of cases) {
+    const previous = await f.registry.read(c);
+    await scoped(f.db, c, (tx) =>
+      tx.put("identity-revocations", id, previous.revision, item.state),
+    );
+    const before = await f.registry.read(c);
+    await assert.rejects(
+      f.registry.apply(c, before.revision, item.command as never, "capacity"),
+      { code: item.code },
+    );
+    assert.deepEqual(await f.registry.read(c), before);
+  }
 });
