@@ -20,8 +20,11 @@
     "acceptedPr": 2,
     "boundsPr": 3,
     "newLocalGroups": 10,
-    "transport": "Synthetic native Fetch Request/Response/ReadableStream callbacks only",
+    "transport": "Synthetic Response/ReadableStream callbacks only; no network",
     "liveNetworkCredentialAndFederationAcceptance": "not_performed",
-    "currentHeadCi": "required_before_merge"
+    "currentHeadCi": "required_before_merge",
+    "sourceCiPassed": "871763289ebe5705a87058c39e3b3af43f75cf6f",
+    "sourceCiRun": 40485940273,
+    "installedPackage": "Public export executed synthetic successful verification and credential-stage timeout"
   }
 }
