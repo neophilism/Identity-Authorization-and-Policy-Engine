@@ -133,6 +133,7 @@ export async function verifyIntakeService(
     "Bounded pinned credential scopes and engine versions required",
   );
   const controller = new AbortController();
+  const deadline = performance.now() + timeout;
   const abort = () => controller.abort();
   external?.addEventListener("abort", abort, { once: true });
   let timedOut = false;
@@ -158,6 +159,12 @@ export async function verifyIntakeService(
   controller.signal.addEventListener("abort", onAbort, { once: true });
   if (external?.aborted) controller.abort();
   function active() {
+    // Timers alone can lose to a chain of already-resolved promises. Check the
+    // monotonic deadline at stage boundaries as well as aborting stalled I/O.
+    if (!controller.signal.aborted && performance.now() >= deadline) {
+      timedOut = true;
+      controller.abort();
+    }
     if (controller.signal.aborted)
       throw new DomainError(
         timedOut ? "verification_timeout" : "verification_cancelled",
@@ -220,6 +227,9 @@ export async function verifyIntakeService(
     void pending
       .then(
         (r) => {
+          // Retain it for cleanup even when a monotonic deadline check rejects
+          // between transport resolution and assignment from wait().
+          response = r;
           if (controller.signal.aborted) cancel(r.body);
         },
         () => {},
@@ -313,6 +323,7 @@ export async function verifyIntakeService(
       upstreamScopeDigest: digest([...scopes].sort()),
     };
   } catch (error) {
+    active();
     if (error instanceof DomainError) throw error;
     throw new DomainError(
       "verification_unavailable",

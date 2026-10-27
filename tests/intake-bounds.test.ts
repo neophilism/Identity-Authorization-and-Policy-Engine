@@ -60,8 +60,8 @@ test("captured trusted mapping cannot drift across credential and response await
     },
   );
   await entered.promise;
-  (supplied as {tenantId: string}).tenantId = "foreign";
-  (supplied as {projectId: string}).projectId = "foreign";
+  (supplied as { tenantId: string }).tenantId = "foreign";
+  (supplied as { projectId: string }).projectId = "foreign";
   supplied.actorId = "foreign";
   supplied.origin = "https://foreign.example";
   supplied.credentialFingerprint = tokenHash("other");
@@ -245,4 +245,176 @@ test("credential transport and stream errors are sanitized even if callbacks thr
       },
     );
   }
+});
+
+test("strict JSON encoding and object/scopes profiles reject ambiguous capability bodies", async () => {
+  const invalid = [
+    new Uint8Array([0xff]),
+    "null",
+    "[]",
+    '{"data":null}',
+    '{"data":[]}',
+    JSON.stringify({
+      ...body,
+      data: {
+        ...body.data,
+        authentication: { ...body.data.authentication, grantedScopes: [""] },
+      },
+    }),
+    JSON.stringify({
+      ...body,
+      data: {
+        ...body.data,
+        authentication: {
+          ...body.data.authentication,
+          grantedScopes: ["case:view", 1],
+        },
+      },
+    }),
+  ];
+  for (const data of invalid)
+    await assert.rejects(
+      verifyIntakeService(
+        mapping,
+        async () => token,
+        now,
+        async () =>
+          new Response(data, {
+            headers: { "content-type": "application/json" },
+          }),
+      ),
+    );
+});
+test("mapping version/scope lists enabled literal and per-call budgets are validated before credential or transport callbacks", async () => {
+  let calls = 0;
+  const credential = async () => {
+    calls++;
+    return token;
+  };
+  for (const bad of [
+    { ...mapping, enabled: 1 },
+    { ...mapping, supportedVersions: [] },
+    { ...mapping, supportedVersions: Array(33).fill("v") },
+    { ...mapping, requiredScopes: [""] },
+    { ...mapping, requiredScopes: Array(201).fill("scope") },
+    { ...mapping, origin: "malformed url with private diagnostics" },
+  ])
+    await assert.rejects(
+      verifyIntakeService(
+        bad as IntakeServiceMapping,
+        credential,
+        now,
+        async () => Response.json(body),
+      ),
+      (e) => {
+        assert.equal(String(e).includes("private diagnostics"), false);
+        return true;
+      },
+    );
+  for (const timeoutMs of [0, 9, 30001, NaN, Infinity, 10.5])
+    await assert.rejects(
+      verifyIntakeService(
+        mapping,
+        credential,
+        now,
+        async () => Response.json(body),
+        { timeoutMs },
+      ),
+      { code: "invalid_timeout" },
+    );
+  assert.equal(calls, 0);
+});
+test("response chunks are copied and early response rejection cancels unread bodies", async () => {
+  const encoded = new TextEncoder().encode(JSON.stringify(body)),
+    first = encoded.slice(0, -1),
+    last = encoded.slice(-1);
+  let phase = 0;
+  const stream = new ReadableStream<Uint8Array>(
+    {
+      pull(controller) {
+        if (phase++ === 0) controller.enqueue(first);
+        else {
+          first.fill(120);
+          controller.enqueue(last);
+          controller.close();
+        }
+      },
+    },
+    { highWaterMark: 0 },
+  );
+  const verified = await verifyIntakeService(
+    mapping,
+    async () => token,
+    now,
+    async () =>
+      new Response(stream, {
+        headers: { "content-type": "application/json; charset=utf-8" },
+      }),
+  );
+  assert.equal(verified.actor.id, mapping.actorId);
+  for (const status of [200, 302, 401]) {
+    let cancelled = false;
+    const unread = new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+    });
+    await assert.rejects(
+      verifyIntakeService(
+        mapping,
+        async () => token,
+        now,
+        async () =>
+          new Response(unread, {
+            status,
+            headers: { "content-type": "text/plain" },
+          }),
+      ),
+    );
+    assert.equal(cancelled, true);
+  }
+});
+test("monotonic deadline catches synchronous callback delay before a transport or identity can escape the timer", async () => {
+  let calls = 0;
+  await assert.rejects(
+    verifyIntakeService(
+      mapping,
+      async () => {
+        const until = performance.now() + 20;
+        while (performance.now() < until) {}
+        return token;
+      },
+      now,
+      async () => {
+        calls++;
+        return Response.json(body);
+      },
+      { timeoutMs: 10 },
+    ),
+    { code: "verification_timeout" },
+  );
+  assert.equal(calls, 0);
+  let cancelled = false;
+  await assert.rejects(
+    verifyIntakeService(
+      mapping,
+      async () => token,
+      now,
+      async () => {
+        const until = performance.now() + 20;
+        while (performance.now() < until) {}
+        return new Response(
+          new ReadableStream({
+            cancel() {
+              cancelled = true;
+            },
+          }),
+          { headers: { "content-type": "application/json" } },
+        );
+      },
+      { timeoutMs: 10 },
+    ),
+    { code: "verification_timeout" },
+  );
+  assert.equal(cancelled, true);
 });
