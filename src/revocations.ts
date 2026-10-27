@@ -1,6 +1,7 @@
+import { verifyStoredCapability } from "./stored-capability.ts";
 import { scoped } from "@accountability/evidence/database";
 import type { Database, UnitOfWork } from "@accountability/evidence/database";
-import { ACTIONS, authorize, verifyCapability } from "./index.ts";
+import { ACTIONS, authorize } from "./index.ts";
 import type { Action, Capability } from "./index.ts";
 import {
   canonical,
@@ -254,58 +255,15 @@ export class RevocationRegistry {
     try {
       return await scoped(this.#db, c, async (tx) => {
         await tx.audit("identity.capability.checked", { action, resourceId });
-        const { state } = await this.#get(tx);
-        const now = this.#clock();
-        invariant(
-          validTime(now) >= validTime(c.now),
-          "invalid_time",
-          "Trusted clock regressed",
-        );
-        const cap = verifyCapability(
+        return verifyStoredCapability(
+          tx,
+          c,
           token,
-          { ...c, now },
-          {
-            action,
-            resourceId,
-            policyRevision: state.policyRevision,
-            actorEpoch:
-              state.actorEpochs.find((a) => a.actorId === c.actor.id)?.epoch ??
-              0,
-            revokedIds: state.revokedIds,
-          },
+          action,
+          resourceId,
           key,
+          this.#clock,
         );
-        // Signed data is still validated before it leaves this boundary.
-        invariant(
-          Object.keys(cap).length === 11 &&
-            [
-              "tenantId",
-              "projectId",
-              "id",
-              "actorId",
-              "action",
-              "purpose",
-              "resourceIds",
-              "policyRevision",
-              "actorEpoch",
-              "notBefore",
-              "expiresAt",
-            ].every((k) => Object.hasOwn(cap, k)),
-          "invalid_capability",
-          "Exact capability profile required",
-        );
-        nonempty(cap.id, "Capability", 128);
-        invariant(
-          cap.resourceIds.length > 0 &&
-            cap.resourceIds.length <= 128 &&
-            new Set(cap.resourceIds).size === cap.resourceIds.length &&
-            validTime(cap.expiresAt) - validTime(cap.notBefore) > 0 &&
-            validTime(cap.expiresAt) - validTime(cap.notBefore) <= 3600000,
-          "invalid_capability",
-          "Bounded capability profile required",
-        );
-        for (const id of cap.resourceIds) nonempty(id, "Resource", 128);
-        return cap;
       });
     } finally {
       key.fill(0);

@@ -1,6 +1,8 @@
 import { scoped } from "@accountability/evidence/database";
 import type { Database, UnitOfWork } from "@accountability/evidence/database";
 import { ACTIONS, authorize } from "./index.ts";
+import type { Capability } from "./index.ts";
+import { verifyStoredCapability } from "./stored-capability.ts";
 import type { Action } from "./index.ts";
 import {
   canonical,
@@ -263,6 +265,63 @@ export class MembershipRegistry {
         context: resolved,
       };
     });
+  }
+  /** Same-transaction current membership and revocation observation, never an execution permit. */
+  async verifyCapability(
+    context: Context,
+    token: string,
+    expected: Readonly<{ action: Action; resourceId: string }>,
+    secret: Uint8Array,
+  ): Promise<
+    Readonly<{
+      membershipRevision: number;
+      memberEpoch: number;
+      capability: Capability;
+    }>
+  > {
+    const c = this.#context(context),
+      action = expected.action,
+      resourceId = expected.resourceId;
+    exact(expected, ["action", "resourceId"]);
+    nonempty(resourceId, "Resource", 128);
+    invariant(
+      ACTIONS.includes(action) &&
+        typeof token === "string" &&
+        token.length <= 10000 &&
+        secret instanceof Uint8Array &&
+        secret.byteLength >= 32 &&
+        secret.byteLength <= 4096,
+      "invalid_capability",
+      "Bounded signed capability required",
+    );
+    const key = Uint8Array.from(secret);
+    try {
+      return await scoped(this.#db, c, async (tx) => {
+        await tx.audit("identity.membership.capability.checked", {
+          action,
+          resourceId,
+        });
+        const snapshot = await this.#load(tx);
+        invariant(snapshot, "not_initialized", "Membership unavailable");
+        const resolved = this.#resolve(c, snapshot, action);
+        const capability = await verifyStoredCapability(
+          tx,
+          resolved,
+          token,
+          action,
+          resourceId,
+          key,
+          this.#clock,
+        );
+        return {
+          membershipRevision: snapshot.revision,
+          memberEpoch: snapshot.members.find((m) => m.id === c.actor.id)!.epoch,
+          capability,
+        };
+      });
+    } finally {
+      key.fill(0);
+    }
   }
   async apply(
     context: Context,
