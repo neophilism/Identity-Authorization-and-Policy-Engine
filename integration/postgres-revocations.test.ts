@@ -540,3 +540,175 @@ for (const mode of ["cached-command", "role-resolution"] as const) {
     },
   );
 }
+
+for (const mode of ["disable", "demote", "revoke", "expiry"] as const) {
+  test(
+    `combined membership/capability check observes ${mode} after an actual API transaction and directly observed PostgreSQL lock wait`,
+    { timeout: 20000 },
+    async (t) => {
+      const f = await fixture(t, "combined-lock-" + mode),
+        ma = membership(f, f.a),
+        mb = membership(f, f.b);
+      await ma.initialize(f.context, "membership-init");
+      await ma.apply(
+        f.context,
+        1,
+        {
+          type: "set-member",
+          id: "reader",
+          kind: "human",
+          roles: ["researcher"],
+        },
+        "add-reader",
+      );
+      const token = issueCapability(
+        f.context,
+        {
+          tenantId: f.context.tenantId,
+          projectId: f.id,
+          id: "combined-grant",
+          actorId: "reader",
+          action: "process",
+          purpose: f.context.purpose,
+          resourceIds: ["document"],
+          policyRevision: 1,
+          actorEpoch: 0,
+          notBefore: f.context.now,
+          expiresAt: "2026-01-01T00:01:00Z",
+        },
+        f.key,
+      );
+      const expected = { action: "process" as const, resourceId: "document" },
+        caller = {
+          ...f.reader,
+          actor: { ...f.reader.actor, roles: ["owner"] },
+        };
+      const observedBefore = await mb.verifyCapability(
+        caller,
+        token,
+        expected,
+        f.key,
+      );
+      assert.equal(observedBefore.membershipRevision, 2);
+      assert.equal(observedBefore.memberEpoch, 1);
+      const locked = gate(),
+        release = gate();
+      // Await the real public mutation, retaining its actual transaction BEFORE COMMIT.
+      // No fixture-only membership/revocation SQL write is used in these new cases.
+      const held: Database = {
+        transaction: (fn) =>
+          f.a.transaction(async (q) => {
+            const value = await fn(q);
+            locked.resolve();
+            await release.promise;
+            return value;
+          }),
+        close: async () => {},
+      };
+      const hold =
+        mode === "disable" || mode === "demote"
+          ? membership(f, held).apply(
+              f.context,
+              2,
+              mode === "disable"
+                ? { type: "disable-member", id: "reader" }
+                : {
+                    type: "set-member",
+                    id: "reader",
+                    kind: "human",
+                    roles: ["viewer"],
+                  },
+              "change-reader",
+            )
+          : mode === "revoke"
+            ? new RevocationRegistry(held, f.policy, () => f.clock.now).apply(
+                f.context,
+                1,
+                { type: "revoke-capability", id: "combined-grant" },
+                "revoke-combined",
+              )
+            : scoped(held, f.context, async (tx) => {
+                await tx.audit("fixture.combined-expiry-lock", {
+                  fixture: true,
+                });
+              });
+      let pending: Promise<unknown> | undefined;
+      try {
+        await Promise.race([locked.promise, hold]);
+        pending = mb.verifyCapability(caller, token, expected, f.key);
+        const result = pending.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        let observed = false;
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline) {
+          const r = await admin.transaction((q) =>
+            q.query<{ blocked: boolean }>(
+              "SELECT EXISTS(SELECT FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock' AND cardinality(pg_blocking_pids(pid))>0) AS blocked",
+              [f.id + "-b"],
+            ),
+          );
+          if (r.rows[0]!.blocked) {
+            observed = true;
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        assert.equal(
+          observed,
+          true,
+          "Actual combined-check backend must block before committed change/clock advancement",
+        );
+        if (mode === "expiry") f.clock.now = "2026-01-01T00:02:00Z";
+        release.resolve();
+        await hold;
+        const r = await result;
+        assert.ok("error" in r);
+        const code =
+          mode === "disable"
+            ? "member_denied"
+            : mode === "demote"
+              ? "forbidden"
+              : mode === "revoke"
+                ? "revoked_capability"
+                : "expired_capability";
+        assert.equal((r.error as { code: string }).code, code);
+        await f.b.close();
+        const fresh = f.connect("fresh");
+        await assert.rejects(
+          membership(f, fresh).verifyCapability(caller, token, expected, f.key),
+          { code },
+        );
+        const state = await membership(f, fresh).read(f.context);
+        assert.equal(
+          state.revision,
+          mode === "disable" || mode === "demote" ? 3 : 2,
+        );
+        await scoped(fresh, f.context, async (tx) => {
+          const audits = await tx.audits();
+          assert.ok(verifyAudit(audits));
+          assert.equal(JSON.stringify(audits).includes(token), false);
+          assert.equal(
+            JSON.stringify(audits).includes(f.key.toString("hex")),
+            false,
+          );
+          assert.equal(
+            audits.filter((a) => a.type === "identity.membership.changed")
+              .length,
+            mode === "disable" || mode === "demote" ? 2 : 1,
+          );
+          assert.equal(
+            audits.filter((a) => a.type === "identity.revocations.changed")
+              .length,
+            mode === "revoke" ? 1 : 0,
+          );
+        });
+      } finally {
+        release.resolve();
+        await hold;
+        await pending?.catch(() => {});
+      }
+    },
+  );
+}
