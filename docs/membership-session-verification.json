@@ -1,0 +1,26 @@
+{
+  "localTests": 51,
+  "newRestrictedMigrationGroups": 6,
+  "installedGroups": 6,
+  "installedCompiledJS": "byte-matched build",
+  "initialCi": {
+    "source": "7f8676a9a2e6829b6e3af5ff697ba1e89167f168",
+    "run": 40684029956,
+    "check": 122801704229,
+    "postgres": 122801704547,
+    "ordinary": 50,
+    "existingNetworkGroups": 12,
+    "logsInspected": true
+  },
+  "scope": "Trusted human host-session to current stored roles, not authentication proof or external action fence",
+  "remaining": [
+    "Listening host and qualified real session/CSRF/identity/TLS integration",
+    "Consuming HTTP adapter execution, capability/action policy integration",
+    "No new network scenario or production qualification"
+  ],
+  "sourceSha256": {
+    "src/membership-session.ts": "1c4a576459a416aea5edf5b1a85b21756b49e2c939cc13e2b5cd3881f62e8147",
+    "tests/membership-session.test.ts": "7bd84cb5f3075d915f5d595ad26f1a426690cb18b0a54e8a791676b988bc79b7",
+    "tests/session-fixture.ts": "5e7be91a2fa132fd02458b8a21dc567a185a7fe2770929b4431d5018ce6800c4"
+  }
+}

@@ -23,6 +23,10 @@
     "./membership": {
       "types": "./dist/membership.d.ts",
       "default": "./dist/membership.js"
+    },
+    "./membership-session": {
+      "types": "./dist/membership-session.d.ts",
+      "default": "./dist/membership-session.js"
     }
   },
   "engines": {

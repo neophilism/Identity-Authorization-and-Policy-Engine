@@ -33,3 +33,7 @@ POSTGRES_TESTS.md defines disposable PostgreSQL17 CI for revocation contenders, 
 MembershipRegistry.verifyCapability now observes current enabled membership roles/kind and stored HMAC capability revocation state under one Identity project lock/transaction, with a shared internal checker preserving RevocationRegistry admission. No separate read/verify gap exists within that observation. This does not bind later external execution, synchronize membership and capability epochs or provide host authentication. See MEMBERSHIP.md.
 
 POSTGRES_TESTS.md additionally defines four direct combined membership/capability contention cases, including real public mutation transactions held before COMMIT and directly observed backend waits. Integration sources are strictly typechecked before their separate CI execution; local embedded tests remain distinct from actual network and production acceptance.
+
+## Current human session integration port
+
+[Membership session](MEMBERSHIP_SESSION.md) connects a trusted host-authenticated human ID/session CSRF to current stored roles through MembershipRegistry.resolve on each invocation. It fixes scope/purpose/action and awaits begun SQL, denying late snapshots. The returned Context remains historical, not capability verification or a downstream action fence. Listening-host authentication and consuming-handler integration remain separate qualification.
