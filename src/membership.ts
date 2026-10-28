@@ -1,3 +1,17 @@
+import {
+  RESOURCE_POLICY_KIND,
+  RESOURCE_POLICY_KEY,
+  validateResourcePolicy,
+  validateResourcePolicies,
+} from "./resource-policy.ts";
+import type {
+  ResourcePolicy,
+  ResourcePolicySnapshot,
+} from "./resource-policy.ts";
+export type {
+  ResourcePolicy,
+  ResourcePolicySnapshot,
+} from "./resource-policy.ts";
 import { scoped } from "@accountability/evidence/database";
 import type { Database, UnitOfWork } from "@accountability/evidence/database";
 import { ACTIONS, authorize } from "./index.ts";
@@ -262,6 +276,147 @@ export class MembershipRegistry {
       return {
         revision: snapshot.revision,
         memberEpoch: snapshot.members.find((m) => m.id === c.actor.id)!.epoch,
+        context: resolved,
+      };
+    });
+  }
+  async #resourcePolicies(tx: UnitOfWork): Promise<ResourcePolicySnapshot> {
+    const row = await tx.get<{ policies: ResourcePolicy[] }>(
+      RESOURCE_POLICY_KIND,
+      RESOURCE_POLICY_KEY,
+    );
+    if (!row) return { revision: 0, policies: [] };
+    validateResourcePolicies(row.value);
+    return { revision: row.revision, policies: row.value.policies };
+  }
+  /** Owner-only inspector; same owning project lock as membership/resource policy mutations. */
+  async readResourcePolicies(
+    context: Context,
+  ): Promise<ResourcePolicySnapshot> {
+    const c = this.#context(context);
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("identity.resource-policy.read.checked", {});
+      const membership = await this.#load(tx);
+      invariant(membership, "not_initialized", "Membership unavailable");
+      this.#resolve(c, membership, "admin");
+      return this.#resourcePolicies(tx);
+    });
+  }
+  async setResourcePolicy(
+    context: Context,
+    expectedRevision: number,
+    supplied: ResourcePolicy,
+    commandId: string,
+  ): Promise<ResourcePolicySnapshot> {
+    const c = this.#context(context),
+      policy = structuredClone(supplied);
+    validateResourcePolicy(policy);
+    invariant(
+      Number.isSafeInteger(expectedRevision) && expectedRevision >= 0,
+      "invalid_revision",
+      "Exact nonnegative policy registry revision required",
+    );
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("identity.resource-policy.command.checked", {
+        resourceId: policy.resourceId,
+      });
+      const membership = await this.#load(tx);
+      invariant(membership, "not_initialized", "Membership unavailable");
+      this.#resolve(c, membership, "admin");
+      return tx.idempotent(
+        commandId,
+        json({
+          operation: "set-resource-policy",
+          expectedRevision,
+          policy,
+          actorKind: c.actor.kind,
+          purpose: c.purpose,
+        }),
+        async () => {
+          invariant(
+            policy.memberIds.every((id) =>
+              membership.members.some((m) => m.id === id),
+            ),
+            "unknown_member",
+            "Registered permanent member IDs required",
+          );
+          const before = await this.#resourcePolicies(tx);
+          invariant(
+            before.revision === expectedRevision,
+            "revision_conflict",
+            "Resource policy registry changed",
+          );
+          const policies = before.policies
+            .filter((p) => p.resourceId !== policy.resourceId)
+            .concat(policy)
+            .sort((a, b) =>
+              a.resourceId < b.resourceId
+                ? -1
+                : a.resourceId > b.resourceId
+                  ? 1
+                  : 0,
+            );
+          validateResourcePolicies({ policies });
+          const row = await tx.put(
+            RESOURCE_POLICY_KIND,
+            RESOURCE_POLICY_KEY,
+            expectedRevision,
+            { policies },
+          );
+          await tx.enqueue(
+            "identity.resource-policy.changed",
+            { revision: row.revision, resourceId: policy.resourceId },
+            digest({ kind: RESOURCE_POLICY_KIND, revision: row.revision }),
+          );
+          return json({ revision: row.revision, policies });
+        },
+      ) as Promise<unknown> as Promise<ResourcePolicySnapshot>;
+    });
+  }
+  /** Explicit resource restriction AND current stored role authority, never an external permit. */
+  async resolveResource(
+    context: Context,
+    resourceId: string,
+    action: Action,
+  ): Promise<
+    Readonly<{
+      membershipRevision: number;
+      memberEpoch: number;
+      resourcePolicyRevision: number;
+      resourceId: string;
+      context: Context;
+    }>
+  > {
+    const c = this.#context(context);
+    nonempty(resourceId, "Resource", 128);
+    invariant(
+      ACTIONS.includes(action),
+      "invalid_action",
+      "Known action required",
+    );
+    return scoped(this.#db, c, async (tx) => {
+      await tx.audit("identity.resource-policy.authorize.checked", {
+        resourceId,
+        action,
+      });
+      const membership = await this.#load(tx);
+      invariant(membership, "not_initialized", "Membership unavailable");
+      const policies = await this.#resourcePolicies(tx);
+      const resolved = this.#resolve(c, membership, action); // Clock AFTER both stored reads.
+      const policy = policies.policies.find((p) => p.resourceId === resourceId);
+      invariant(
+        policy &&
+          policy.memberIds.includes(c.actor.id) &&
+          policy.purposes.includes(c.purpose) &&
+          policy.actions.includes(action),
+        "resource_denied",
+        "Explicit resource policy required",
+      );
+      return {
+        membershipRevision: membership.revision,
+        memberEpoch: membership.members.find((m) => m.id === c.actor.id)!.epoch,
+        resourcePolicyRevision: policies.revision,
+        resourceId,
         context: resolved,
       };
     });
