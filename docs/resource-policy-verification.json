@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "pr": 12,
+  "implementation": "partial",
+  "sourceFiles": {
+    "src/membership.ts": "e1c0dd4259ab3f04a8ff8a33a0b2cfae73e92eb2ae4a0bb98a51d6a1462b3078",
+    "src/resource-policy.ts": "4f1da0ce8d7ed273de2c6f09026ba35ff18996b06a9d543c180b907d97dd5a25",
+    "tests/resource-policy.test.ts": "ce1ecb2cc0f7d5780a924d0bb96b65a0c9f758779f5588e2a9fdf45ab1bf8895"
+  },
+  "local": {
+    "ordinaryTests": 71,
+    "newRestrictedMigrationGroups": 8,
+    "typecheck": true,
+    "build": true,
+    "registry": true,
+    "strictPostgresCompile": true
+  },
+  "initialCi": {
+    "source": "146bb4559c61d9160066ff1c12b267996642b178",
+    "run": 40783212483,
+    "check": 123149828433,
+    "postgres": 123149827996,
+    "ordinaryTests": 66,
+    "existingPostgresGroups": 12,
+    "success": true,
+    "logsInspected": true
+  },
+  "installed": "pending",
+  "finalHeadCi": "required",
+  "limits": [
+    "No new independent network-session contention",
+    "Opt-in API only; existing role/capability/session/HTTP consumers unchanged",
+    "Historical observation not an external action permit or automatic capability revocation",
+    "Host authentication/canonical resource mapping/purpose/clock/driver trusted",
+    "No production service/UI/browser/AT/live qualification or sends/publication/payment"
+  ]
+}
