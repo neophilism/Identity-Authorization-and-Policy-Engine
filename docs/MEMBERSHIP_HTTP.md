@@ -1,0 +1,23 @@
+# Private membership HTTP (partial IAP-005/007)
+
+`./membership-http` exports `createMembershipHandler(registry, provider, policy, clock)`, returning a native Fetch Request/Response handler. Supply an ALREADY initialized MembershipRegistry on Identity's OWN operational database and a trusted HumanSessionProvider. The library opens no port and provides no login, cookie, invitation, certificate, credential or capability issuance. Bootstrap remains an explicitly trusted host operation. No other engine's database is used.
+
+The fixed policy contains HTTPS `origin`, `tenantId`, `projectId`, `purpose` and optional `authenticationTimeoutMs`/`bodyTimeoutMs` (each default5000, integer10..30000). The accepted membership-session adapter resolves the authenticated human with fixed `admin` action on EVERY request. The provider supplies only independently authenticated `actorId`, `requestId`, session `csrfToken` or null. It cannot supply roles or scope. The registry independently reloads current stored human-owner authority under the SAME project lock as each read/mutation and BEFORE cached command lookup. This closes a local resolve-to-mutation role gap without claiming distributed external action fencing.
+
+Routes (no queries/fragments):
+
+| Method | Path                           | Body / response                                                             |
+| ------ | ------------------------------ | --------------------------------------------------------------------------- |
+| GET    | `/identity/session`            | scope, actorId and session csrfToken only                                   |
+| GET    | `/identity/membership`         | current `{revision,members}` private snapshot                               |
+| POST   | `/identity/membership/command` | exact `{commandId,expectedRevision,command}`; historical resulting snapshot |
+
+Commands are the accepted exact `set-member` `{type,id,kind,roles}` or `disable-member` `{type,id}` profiles. Set explicitly re-enables an existing member; last-owner, permanent kind binding, bounded roles/aggregate, revisions, idempotency, audit/outbox remain domain rules. This does NOT advance separate capability revocation epochs, refresh captured other-engine policies or edit RevocationRegistry fixed administrator configuration.
+
+Same HTTPS origin/Fetch Metadata is required, including session and read routes (Origin or same-origin metadata for GET). POST requires exact Origin and constant-time comparison of session CSRF in `X-CSRF-Token`. Uncompressed strict UTF8 JSON is limited to16KiB/4096 chunks and a monotonic deadline, copied and captured BEFORE obtaining fresh stored session authority. Unknown fields/commands/routes, bad roles/revisions, media, queries and origins deny. Responses are private/no-store same-origin JSON, bounded2MiB (enough for the registry's1MiB aggregate), never provider/driver diagnostic strings or credentials.
+
+A successful command response is a historical acknowledgement, not current authority or a new execution permit. Later commands require fresh sessions and exact revisions. A lost acknowledgement may follow a committed mutation; generic503 `operation_unavailable` means UNKNOWN, never rollback. Only explicit identical replay with current stored owner authority is valid; do not invent a replacement command ID. Session denial/errors are sanitized401/503; malformed requests400, current registry denial403, conflicts409. No automatic retry is performed.
+
+Cancellation/deadlines deny admission. Begun owning SQL is awaited; the registry has no SQL cancellation interface. Acknowledged mutations stay acknowledged even if cancellation arrives while SQL completes. A read cancelled during SQL is withheld. Host query/transaction/pool/concurrency/header/body ingress limits remain necessary, including noncooperative/hung driver handling. This is no network-session, real session, identity proofing, listening TLS/proxy, browser/accessibility, production key, crash/failover/throughput or live qualification. The provider's authentication, random session-bound CSRF, current clock, TLS/header trust and logout handling must be independently qualified. No bootstrap/reset, revoke/key, service/action dispatch, send or publication routes exist.
+
+Initial source checkpoint: four new actual canonical-migration/restricted authenticated PGlite/native-Fetch groups pass plus typecheck. They cover domain lifecycle/last owner/private read, current-owner historical replay, exact admission/CSRF and actual post-COMMIT lost acknowledgement. Installed-package, expanded adversarial tests and final-head CI/review remain pending at this checkpoint.
