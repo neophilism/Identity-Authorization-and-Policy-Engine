@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import { DomainError as PersistenceError } from "@accountability/evidence/contracts";
 import { DomainError, invariant, nonempty } from "./contracts.ts";
 import type { Scope } from "./contracts.ts";
 import { MembershipRegistry } from "./membership.ts";
@@ -331,7 +332,10 @@ export function createMembershipHandler(
       return reply(200, result);
     } catch (error) {
       const code =
-        error instanceof DomainError && Object.hasOwn(codes, error.code)
+        (error instanceof DomainError ||
+          (error instanceof PersistenceError &&
+            error.code === "idempotency_conflict")) &&
+        Object.hasOwn(codes, error.code)
           ? error.code
           : "operation_unavailable";
       return reply(codes[code] ?? 503, { error: code });
