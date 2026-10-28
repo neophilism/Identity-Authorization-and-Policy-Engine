@@ -1,0 +1,30 @@
+{
+  "localTests": 63,
+  "newRestrictedMigrationNativeFetchGroups": 12,
+  "installedCompiledPublicExportGroups": 12,
+  "installedCompiledJS": "byte-matched build",
+  "strictIntegrationCompile": "passed",
+  "sourceCheckpointCi": {
+    "source": "af235eb2180e8764d6b61482f2074cb568d012f4",
+    "run": 40712556437,
+    "ordinaryJob": 122901434072,
+    "postgresJob": 122901433680,
+    "ordinary": 63,
+    "existingPostgres17Groups": 12,
+    "logsInspected": true
+  },
+  "scope": "Private membership read/set/disable over independently trusted human sessions, with owning stored-owner checks before cached acknowledgements; not authentication proof or external action fencing",
+  "remaining": [
+    "Final-head CI/expected-head merge acceptance",
+    "Qualified independently authenticated sessions/identity proofing/session CSRF/current clock",
+    "Listening TLS/header/ingress/concurrency and database driver limits",
+    "No new independent network-session/browser/accessibility/crash/failover/throughput/live qualification",
+    "Protected exact pending-command reload recovery and host private admin UI remain separate",
+    "Membership changes do not synchronize separate capability epochs or other engines captured policies"
+  ],
+  "sourceSha256": {
+    "src/membership-http.ts": "fbee502e22f1952aeb1c6ae26de470579c013389db379cdfb12a10a619f9f071",
+    "tests/membership-http.test.ts": "cd7d2d9f6e42f0fbe2dabe48ec797f63b463eab58edbb5d9e611c15baeecfdca",
+    "tests/session-fixture.ts": "5e7be91a2fa132fd02458b8a21dc567a185a7fe2770929b4431d5018ce6800c4"
+  }
+}
