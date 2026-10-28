@@ -25,7 +25,10 @@
     "success": true,
     "logsInspected": true
   },
-  "installed": "pending",
+  "installed": {
+    "newRestrictedMigrationGroups": 8,
+    "compiledMembershipAndResourcePolicyJsMatch": true
+  },
   "finalHeadCi": "required",
   "limits": [
     "No new independent network-session contention",

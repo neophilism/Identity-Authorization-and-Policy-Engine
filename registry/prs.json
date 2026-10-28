@@ -4,7 +4,7 @@
   "roadmapVersion": 1,
   "planVerified": true,
   "plannedPrCount": 8,
-  "observedAt": "2026-10-28T22:53:50Z",
+  "observedAt": "2026-10-28T22:54:31Z",
   "units": [
     {
       "id": "IAP-001",
@@ -123,7 +123,7 @@
         "Compartment projections and policy inspector"
       ],
       "acceptanceCriteria": "Verify normal behavior and rejection paths with source-bound automated evidence. Live acceptance is separate.",
-      "implementationStatus": "Partial PR12: owning resource-policy registry/owner inspector and explicit resolveResource current stored role intersection. Default deny/no owner bypass, exact resource/member/purpose/action bounds,256 permanent slots/1MiB/no reset or eviction, current owner before cached acknowledgement, CAS/history/audit/outbox and post-read trusted clock. Eight new actual restricted-migration groups and all71 local tests/typecheck/build/registry/strict integration compile pass. Initial source146bb4559c61d9160066ff1c12b267996642b178 CI40783212483 passed66 ordinary and twelve EXISTING PostgreSQL17 regressions, logs inspected. Installed/current-head CI/reviewed merge pending. Existing resolve/capability/session/HTTP consumers unchanged; no automatic resource enforcement, external permit, production auth/canonical resource mapping/network-contention/UI/live qualification. See RESOURCE_POLICIES.md."
+      "implementationStatus": "Partial PR12: owning resource-policy registry/owner inspector and explicit resolveResource current stored role intersection. Default deny/no owner bypass, exact resource/member/purpose/action bounds,256 permanent slots/1MiB/no reset or eviction, current owner before cached acknowledgement, CAS/history/audit/outbox and post-read trusted clock. Eight new actual restricted-migration groups and all71 local tests/typecheck/build/registry/strict integration compile pass. Initial source146bb4559c61d9160066ff1c12b267996642b178 CI40783212483 passed66 ordinary and twelve EXISTING PostgreSQL17 regressions, logs inspected. All eight new groups also pass installed compiled public exports/membership and resource-policy JS byte-match. Current-head CI/reviewed merge pending. Existing resolve/capability/session/HTTP consumers unchanged; no automatic resource enforcement, external permit, production auth/canonical resource mapping/network-contention/UI/live qualification. See RESOURCE_POLICIES.md."
     },
     {
       "id": "IAP-007",
