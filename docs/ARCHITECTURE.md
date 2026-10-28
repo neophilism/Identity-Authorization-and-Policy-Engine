@@ -37,3 +37,9 @@ POSTGRES_TESTS.md additionally defines four direct combined membership/capabilit
 ## Current human session integration port
 
 [Membership session](MEMBERSHIP_SESSION.md) connects a trusted host-authenticated human ID/session CSRF to current stored roles through MembershipRegistry.resolve on each invocation. It fixes scope/purpose/action and awaits begun SQL, denying late snapshots. The returned Context remains historical, not capability verification or a downstream action fence. Listening-host authentication and consuming-handler integration remain separate qualification.
+
+## Private membership administration adapter
+
+[Membership HTTP](MEMBERSHIP_HTTP.md) connects the accepted current human-session adapter to private membership read/set/disable operations. The owning registry rechecks stored human-owner authority under its mutation lock before cached acknowledgements. Bootstrap/credentials/revocation configuration and external action dispatch remain outside these routes. Twelve restricted-migration/native-Fetch groups cover current authority before/after session resolution, replay/lost acknowledgements, rollback, deadlines and cancellation. Installed-package/current-head CI evidence and production host acceptance remain separate.
+
+Membership HTTP's twelve groups also pass installed compiled public exports, with all63 local ordinary tests/typecheck/build/registry/strict integration compile green. CI40712556437 confirms63 ordinary and twelve existing PostgreSQL17 groups on expanded source, logs inspected; final-head CI remains required after evidence changes. Host authentication/CSRF/current clocks/listening and SQL limits remain separate acceptance.
