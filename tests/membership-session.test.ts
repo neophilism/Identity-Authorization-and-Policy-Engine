@@ -250,3 +250,50 @@ test("begun actual SQL is awaited but its expired snapshot is refused; clock fai
     await assert.rejects(bad.authenticate(metadata(), signal()), unavailable);
   }
 });
+
+test("active cancellation fences late provider results; invalid configuration is refused before authentication", async (t) => {
+  const f = await fixture(t);
+  for (const bad of [
+    { ...policy, origin: "http://private.example" },
+    { ...policy, timeoutMs: 0 },
+    { ...policy, action: "unknown" },
+  ])
+    assert.throws(() =>
+      createMembershipSessionAuthentication(
+        f.registry,
+        { authenticate: async () => identity },
+        bad as typeof policy,
+        () => c.now,
+      ),
+    );
+  let started!: () => void,
+    finish!: (v: typeof identity) => void,
+    owned: AbortSignal | undefined;
+  const ready = new Promise<void>((r) => {
+    started = r;
+  });
+  const adapter = createMembershipSessionAuthentication(
+    f.registry,
+    {
+      authenticate: async (_m, s) => {
+        owned = s;
+        started();
+        return new Promise((r) => {
+          finish = r;
+        });
+      },
+    },
+    policy,
+    () => c.now,
+  );
+  const controller = new AbortController(),
+    result = adapter.authenticate(metadata(), controller.signal);
+  await ready;
+  controller.abort();
+  await assert.rejects(result, unavailable);
+  assert.equal(owned?.aborted, true);
+  finish(identity);
+  await new Promise((r) => setImmediate(r));
+  const stored = await f.registry.read(c);
+  assert.equal(stored.revision, 1);
+});
