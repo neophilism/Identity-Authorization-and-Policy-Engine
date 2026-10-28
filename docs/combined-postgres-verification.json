@@ -1,11 +1,11 @@
 {
-  "stage": "local_compile_and_ordinary_tests_passed_network_ci_pending",
+  "stage": "local_compile_ordinary_and_initial_network_ci_passed",
   "ordinaryTestsPassed": 45,
   "newCombinedPostgresGroups": 4,
   "existingPostgresGroups": 8,
   "fixture": "Actual public API transactions held before COMMIT, independently observed pg_stat_activity/pg_blocking_pids wait, real restricted PostgreSQL17 sessions in disposable CI",
   "sourceHashes": {
-    "integration/postgres-revocations.test.ts": "7e4e2920420bd7cc518c7a57d3febfdf1425690cd21961eb60301d419ecfc853",
+    "integration/postgres-revocations.test.ts": "3bcb3542f7fc3137013e7b6d2fcb0c31c3c4fabf38034238146ff1759dd00d17",
     "tsconfig.postgres.json": "0a3fe2d3a92ee9adf8a798fa54e50b3a9ca2e959a477f54755a802b53594b3b3",
     "package.json": "e0cea91c4dcad0f4d390134c1c92be1d0fc202377d063d9a2aaf864f90d35dcf",
     "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5",
@@ -15,5 +15,13 @@
   "localPostgresExecution": "not_available",
   "newInstalledRuntimeClaim": "none_no_runtime_changes",
   "productionIdentityKeyTlsDeploymentAcceptance": "not_performed",
-  "finalHeadCi": "required_before_merge"
+  "finalHeadCi": "required_before_merge",
+  "postgresGroupsPassed": 12,
+  "initialCi": {
+    "source": "f03786b5459e7c5042f873421941835e7b6241b4",
+    "run": 40606559606,
+    "ordinaryJob": 122547398143,
+    "postgresJob": 122547398336,
+    "logsIndependentlyInspected": true
+  }
 }

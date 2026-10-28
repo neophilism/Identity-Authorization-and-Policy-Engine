@@ -543,7 +543,7 @@ for (const mode of ["cached-command", "role-resolution"] as const) {
 
 for (const mode of ["disable", "demote", "revoke", "expiry"] as const) {
   test(
-    `combined membership/capability check observes ${mode} after an actual API transaction and directly observed PostgreSQL lock wait`,
+    `combined membership/capability check observes ${mode} after ${mode === "expiry" ? "trusted-clock advancement" : "committed public policy mutation"} and directly observed PostgreSQL lock wait`,
     { timeout: 20000 },
     async (t) => {
       const f = await fixture(t, "combined-lock-" + mode),
