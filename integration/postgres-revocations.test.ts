@@ -14,6 +14,7 @@ import { RevocationRegistry } from "../src/revocations.ts";
 import type { RevocationState } from "../src/revocations.ts";
 import { issueCapability } from "../src/index.ts";
 import type { Context } from "../src/contracts.ts";
+import type { ResourcePolicy } from "../src/resource-policy.ts";
 import { digest } from "../src/contracts.ts";
 // Intentionally refuses arbitrary or persistent database targets. CI owns this empty fixture only.
 const supplied = process.env.IAP_TEST_ADMIN_URL;
@@ -712,3 +713,290 @@ for (const mode of ["disable", "demote", "revoke", "expiry"] as const) {
     },
   );
 }
+
+// These helpers wrap actual public commands; no resource-policy fixture SQL writes.
+function beforeCommit(
+  db: Database,
+  locked: ReturnType<typeof gate>,
+  release: ReturnType<typeof gate>,
+  loseAck = false,
+): Database {
+  return {
+    close: async () => {},
+    transaction: async (fn) => {
+      const value = await db.transaction(async (q) => {
+        const value = await fn(q);
+        locked.resolve();
+        await release.promise;
+        return value;
+      });
+      if (loseAck)
+        throw new Error("fixture lost policy COMMIT acknowledgement");
+      return value;
+    },
+  };
+}
+async function requireResourceWait(id: string) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const result = await admin.transaction((q) =>
+      q.query<{ blocked: boolean }>(
+        "SELECT EXISTS(SELECT FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock' AND cardinality(pg_blocking_pids(pid))>0) AS blocked",
+        [id + "-b"],
+      ),
+    );
+    if (result.rows[0]!.blocked) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.fail(
+    "Resource-policy reader/contender must independently exhibit a PostgreSQL Lock with blocking PIDs before COMMIT",
+  );
+}
+async function resourceFixture(t: test.TestContext, id: string) {
+  const f = await fixture(t, id),
+    ma = membership(f, f.a),
+    mb = membership(f, f.b);
+  await ma.initialize(f.context, "membership-init");
+  await ma.apply(
+    f.context,
+    1,
+    { type: "set-member", id: "reader", kind: "human", roles: ["researcher"] },
+    "reader",
+  );
+  const policy: ResourcePolicy = {
+    resourceId: "private-document",
+    memberIds: ["reader"],
+    purposes: [f.context.purpose],
+    actions: ["process"],
+  };
+  await ma.setResourcePolicy(f.context, 0, policy, "resource-init");
+  const caller = {
+    ...f.reader,
+    actor: { ...f.reader.actor, roles: ["owner"] },
+  };
+  const allowed = await mb.resolveResource(
+    caller,
+    policy.resourceId,
+    "process",
+  );
+  assert.equal(allowed.membershipRevision, 2);
+  assert.equal(allowed.resourcePolicyRevision, 1);
+  assert.deepEqual(allowed.context.actor.roles, ["researcher"]);
+  return { ...f, ma, mb, resourcePolicy: policy, caller };
+}
+for (const mode of ["member", "purpose", "action"] as const) {
+  test(
+    `resource resolution observes committed ${mode} restriction after an independently observed PostgreSQL lock wait`,
+    { timeout: 20000 },
+    async (t) => {
+      const f = await resourceFixture(t, "resource-lock-" + mode),
+        locked = gate(),
+        release = gate();
+      const denied: ResourcePolicy = {
+        ...f.resourcePolicy,
+        ...(mode === "member"
+          ? { memberIds: [] }
+          : mode === "purpose"
+            ? { purposes: ["other-purpose"] }
+            : { actions: ["read" as const] }),
+      };
+      const writer = membership(
+        f,
+        beforeCommit(f.a, locked, release),
+      ).setResourcePolicy(f.context, 1, denied, "restrict");
+      let pending: Promise<unknown> | undefined;
+      try {
+        await Promise.race([locked.promise, writer]);
+        pending = f.mb.resolveResource(
+          f.caller,
+          f.resourcePolicy.resourceId,
+          "process",
+        );
+        const result = pending.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        await requireResourceWait(f.id);
+        release.resolve();
+        assert.equal((await writer).revision, 2);
+        const r = await result;
+        assert.ok("error" in r);
+        assert.equal((r.error as { code: string }).code, "resource_denied");
+        await f.b.close();
+        const fresh = f.connect("fresh"),
+          registry = membership(f, fresh);
+        await assert.rejects(
+          registry.resolveResource(f.caller, f.resourcePolicy.resourceId, "process"),
+          { code: "resource_denied" },
+        );
+        assert.deepEqual(await registry.readResourcePolicies(f.context), {
+          revision: 2,
+          policies: [denied],
+        });
+        await scoped(fresh, f.context, async (tx) =>
+          assert.ok(verifyAudit(await tx.audits())),
+        );
+      } finally {
+        release.resolve();
+        await writer;
+        await pending?.catch(() => {});
+      }
+    },
+  );
+}
+test(
+  "resource policy cached acknowledgement waits for committed owner demotion and denies current authority",
+  { timeout: 20000 },
+  async (t) => {
+    const f = await resourceFixture(t, "resource-owner-cache");
+    await f.ma.apply(f.context, 2, anotherOwner, "second");
+    const second = {
+        ...f.context,
+        actor: { id: "second", kind: "human" as const, roles: [] },
+      },
+      locked = gate(),
+      release = gate();
+    const writer = membership(f, beforeCommit(f.a, locked, release)).apply(
+      second,
+      3,
+      { type: "set-member", id: "owner", kind: "human", roles: ["viewer"] },
+      "demote-owner",
+    );
+    let pending: Promise<unknown> | undefined;
+    try {
+      await Promise.race([locked.promise, writer]);
+      pending = f.mb.setResourcePolicy(f.context, 0, f.resourcePolicy, "resource-init");
+      const result = pending.then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+      await requireResourceWait(f.id);
+      release.resolve();
+      await writer;
+      const r = await result;
+      assert.ok("error" in r);
+      assert.equal((r.error as { code: string }).code, "forbidden");
+      await f.b.close();
+      const fresh = f.connect("fresh"),
+        registry = membership(f, fresh);
+      await assert.rejects(
+        registry.setResourcePolicy(f.context, 0, f.resourcePolicy, "resource-init"),
+        { code: "forbidden" },
+      );
+      assert.deepEqual(await registry.readResourcePolicies(second), {
+        revision: 1,
+        policies: [f.resourcePolicy],
+      });
+      assert.equal((await registry.read(second)).revision, 4);
+      await scoped(fresh, second, async (tx) =>
+        assert.ok(verifyAudit(await tx.audits())),
+      );
+    } finally {
+      release.resolve();
+      await writer;
+      await pending?.catch(() => {});
+    }
+  },
+);
+test(
+  "resource policy contender and lost COMMIT acknowledgement preserve one winning edition and historical replay",
+  { timeout: 20000 },
+  async (t) => {
+    const f = await resourceFixture(t, "resource-policy-contender"),
+      locked = gate(),
+      release = gate();
+    const denied = { ...f.resourcePolicy, memberIds: [] };
+    const writer = membership(
+      f,
+      beforeCommit(f.a, locked, release, true),
+    ).setResourcePolicy(f.context, 1, denied, "restrict-once");
+    const writerResult = writer.then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
+    let pending: Promise<unknown> | undefined;
+    try {
+      await Promise.race([locked.promise, writer]);
+      pending = f.mb.setResourcePolicy(
+        f.context,
+        1,
+        { ...f.resourcePolicy, actions: ["read"] },
+        "competing-change",
+      );
+      const result = pending.then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+      await requireResourceWait(f.id);
+      release.resolve();
+      const lost = await writerResult;
+      assert.ok("error" in lost);
+      assert.match(String(lost.error), /lost policy COMMIT acknowledgement/);
+      const r = await result;
+      assert.ok("error" in r);
+      assert.equal((r.error as { code: string }).code, "revision_conflict");
+      await f.b.close();
+      const fresh = f.connect("fresh"),
+        registry = membership(f, fresh);
+      assert.deepEqual(await registry.readResourcePolicies(f.context), {
+        revision: 2,
+        policies: [denied],
+      });
+      assert.equal(
+        (
+          await registry.setResourcePolicy(
+            f.context,
+            1,
+            denied,
+            "restrict-once",
+          )
+        ).revision,
+        2,
+      );
+      assert.equal(
+        (
+          await registry.setResourcePolicy(
+            f.context,
+            0,
+            f.resourcePolicy,
+            "resource-init",
+          )
+        ).revision,
+        1,
+      );
+      await assert.rejects(
+        registry.resolveResource(f.caller, f.resourcePolicy.resourceId, "process"),
+        { code: "resource_denied" },
+      );
+      await scoped(fresh, f.context, async (tx) => {
+        const audits = await tx.audits();
+        assert.ok(verifyAudit(audits));
+        assert.equal(
+          audits.filter(
+            (a) =>
+              a.type === "record.revised" &&
+              (a.payload as { kind?: string }).kind ===
+                "identity-resource-policy",
+          ).length,
+          2,
+        );
+        const topics: string[] = [];
+        for (;;) {
+          const entry = await tx.claim("resource-fixture-inspector");
+          if (!entry) break;
+          topics.push(entry.topic);
+          await tx.acknowledge(entry);
+        }
+        assert.equal(
+          topics.filter((topic) => topic === "identity.resource-policy.changed")
+            .length,
+          2,
+        );
+      });
+    } finally {
+      release.resolve();
+      await writerResult;
+      await pending?.catch(() => {});
+    }
+  },
+);
