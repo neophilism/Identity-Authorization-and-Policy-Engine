@@ -1,0 +1,66 @@
+{
+  "observedAt": "2026-10-29T15:20:28.405170+00:00",
+  "scope": "Partial IAP-006/007 resource-policy PostgreSQL session qualification only",
+  "acceptedRuntimeSource": "763060ddc840979b56483afd830f78679a2369b0",
+  "baseMerge": "57ffb5ba29cb053ba1b7cb223ff77b04a4fca6af",
+  "runtimeChange": false,
+  "local": {
+    "ordinaryTests": 71,
+    "typecheck": "passed",
+    "build": "passed",
+    "registry": "passed",
+    "strictIntegrationCompile": "passed",
+    "preparedDependencies": "package/lock byte-match accepted main; prior normal prepare retained",
+    "postgres": "not available",
+    "docker": "not available",
+    "newInstalledRuntimeAcceptance": false
+  },
+  "initialCi": {
+    "source": "81974a698710ddba0fe3a6e81788a7b8a6dc7411",
+    "run": 40899664793,
+    "check": 123538165108,
+    "ordinaryTests": 71,
+    "postgres": 123538166055,
+    "networkTests": 17,
+    "headAndLogsInspected": true,
+    "conclusion": "success"
+  },
+  "expandedCi": {
+    "source": "805ed500d4f95f6879db174d532448a3c477dfc6",
+    "run": 40900061441,
+    "check": 123539568482,
+    "ordinaryTests": 71,
+    "postgres": 123539568631,
+    "networkTests": 19,
+    "newNetworkTests": 7,
+    "priorNetworkTests": 12,
+    "headAndLogsInspected": true,
+    "conclusion": "success"
+  },
+  "fixture": "Actual pinned SDK/canonical migration; explicit disposable empty loopback identity_ci only; no reset; restricted authenticated LOGIN; distinct backend PIDs; independent pg_stat_activity Lock plus nonempty pg_blocking_pids required before COMMIT. Real public mutation transactions held before COMMIT. Lost acknowledgement injected only after actual COMMIT.",
+  "review": [
+    "Resource member/purpose/action restriction and membership disable/demotion deny resolveResource after actual observed wait despite incoming forged roles; allowed baseline returns stored researcher role",
+    "Current-owner authorization precedes cached setResourcePolicy ACK after real public owner demotion; no policy change from denied replay",
+    "Policy same-revision contender conflicts after winning actual COMMIT with lost ACK; fresh pool recovers exact winning ACK without new permission; original historical ACK does not choose effective policy",
+    "Exact retained resource-policy editions1/2, valid audit chain, two resource record revisions and two change outbox entries",
+    "No direct fixture membership/resource-policy mutation in seven new cases; earlier twelve cases remain unchanged",
+    "Safe fixture admission/admin-role/scope regressions preserved; no remote DB, migration reset or production configuration"
+  ],
+  "limits": [
+    "Only specified owning SQL-session scenarios; no production identity proofing/resource mapping/current consuming gateway/key or credential qualification",
+    "No atomic downstream/distributed permission fence, remote TLS/failover/throughput/multinode/crash or browser/AT/live qualification",
+    "No local PostgreSQL/Docker or new installed-runtime claim",
+    "No runtime/API/dependency/contracts/schema/workflow/migration change; no provider/send/publication/payment/PAM work"
+  ],
+  "mergeAcceptance": "Actual final PR13 current-head checks and branch rules required before expected-head merge.",
+  "sourceSha256": {
+    "integration/postgres-revocations.test.ts": "ee9bd0ca24bbc23b9de3985c038d49648c769779e180cca486601eb12c7290ce",
+    "docs/POSTGRES_TESTS.md": "cf530e2a8d1abf4e465aba2f071f807d7bfbdeebf59fc5c93473eca8a7637b0e",
+    "docs/RESOURCE_POLICIES.md": "33e4f3941c3c132a7bba0e4f3a0a4ce793b1403e02bb2cdbc644a888b448c5ff",
+    "docs/ARCHITECTURE.md": "a34d915a428bc087cce4fece5f8424e4f9d8c7a08b094c9bd45ab21c41702763",
+    "registry/prs.json": "a1ca52571193c538ef8bd29c2b7f866fa2293c581620af98c50643737cfca579",
+    "src/membership.ts": "e1c0dd4259ab3f04a8ff8a33a0b2cfae73e92eb2ae4a0bb98a51d6a1462b3078",
+    "src/resource-policy.ts": "4f1da0ce8d7ed273de2c6f09026ba35ff18996b06a9d543c180b907d97dd5a25",
+    "src/contracts.ts": "d86141cb7546a723f837a298e4ea6fef62692918f78f5aab2d72d6639987fcc5"
+  }
+}
