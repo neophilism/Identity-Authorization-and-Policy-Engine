@@ -15,6 +15,10 @@ import type { RevocationState } from "../src/revocations.ts";
 import { issueCapability } from "../src/index.ts";
 import type { Context } from "../src/contracts.ts";
 import type { ResourcePolicy } from "../src/resource-policy.ts";
+import {
+  RESOURCE_POLICY_KIND,
+  RESOURCE_POLICY_KEY,
+} from "../src/resource-policy.ts";
 import { digest } from "../src/contracts.ts";
 // Intentionally refuses arbitrary or persistent database targets. CI owns this empty fixture only.
 const supplied = process.env.IAP_TEST_ADMIN_URL;
@@ -826,7 +830,11 @@ for (const mode of ["member", "purpose", "action"] as const) {
         const fresh = f.connect("fresh"),
           registry = membership(f, fresh);
         await assert.rejects(
-          registry.resolveResource(f.caller, f.resourcePolicy.resourceId, "process"),
+          registry.resolveResource(
+            f.caller,
+            f.resourcePolicy.resourceId,
+            "process",
+          ),
           { code: "resource_denied" },
         );
         assert.deepEqual(await registry.readResourcePolicies(f.context), {
@@ -865,7 +873,12 @@ test(
     let pending: Promise<unknown> | undefined;
     try {
       await Promise.race([locked.promise, writer]);
-      pending = f.mb.setResourcePolicy(f.context, 0, f.resourcePolicy, "resource-init");
+      pending = f.mb.setResourcePolicy(
+        f.context,
+        0,
+        f.resourcePolicy,
+        "resource-init",
+      );
       const result = pending.then(
         (value) => ({ value }),
         (error) => ({ error }),
@@ -880,7 +893,12 @@ test(
       const fresh = f.connect("fresh"),
         registry = membership(f, fresh);
       await assert.rejects(
-        registry.setResourcePolicy(f.context, 0, f.resourcePolicy, "resource-init"),
+        registry.setResourcePolicy(
+          f.context,
+          0,
+          f.resourcePolicy,
+          "resource-init",
+        ),
         { code: "forbidden" },
       );
       assert.deepEqual(await registry.readResourcePolicies(second), {
@@ -965,12 +983,24 @@ test(
         1,
       );
       await assert.rejects(
-        registry.resolveResource(f.caller, f.resourcePolicy.resourceId, "process"),
+        registry.resolveResource(
+          f.caller,
+          f.resourcePolicy.resourceId,
+          "process",
+        ),
         { code: "resource_denied" },
       );
       await scoped(fresh, f.context, async (tx) => {
         const audits = await tx.audits();
         assert.ok(verifyAudit(audits));
+        assert.deepEqual(
+          (await tx.get(RESOURCE_POLICY_KIND, RESOURCE_POLICY_KEY, 1))?.value,
+          { policies: [f.resourcePolicy] },
+        );
+        assert.deepEqual(
+          (await tx.get(RESOURCE_POLICY_KIND, RESOURCE_POLICY_KEY, 2))?.value,
+          { policies: [denied] },
+        );
         assert.equal(
           audits.filter(
             (a) =>
@@ -1000,3 +1030,71 @@ test(
     }
   },
 );
+
+for (const mode of ["disable", "demote"] as const) {
+  test(
+    `resource resolution observes committed membership ${mode} after an independently observed PostgreSQL lock wait`,
+    { timeout: 20000 },
+    async (t) => {
+      const f = await resourceFixture(t, "resource-membership-" + mode),
+        locked = gate(),
+        release = gate();
+      const writer = membership(f, beforeCommit(f.a, locked, release)).apply(
+        f.context,
+        2,
+        mode === "disable"
+          ? { type: "disable-member", id: "reader" }
+          : {
+              type: "set-member",
+              id: "reader",
+              kind: "human",
+              roles: ["viewer"],
+            },
+        "change-reader",
+      );
+      let pending: Promise<unknown> | undefined;
+      try {
+        await Promise.race([locked.promise, writer]);
+        pending = f.mb.resolveResource(
+          f.caller,
+          f.resourcePolicy.resourceId,
+          "process",
+        );
+        const result = pending.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        await requireResourceWait(f.id);
+        release.resolve();
+        await writer;
+        const r = await result;
+        assert.ok("error" in r);
+        const code = mode === "disable" ? "member_denied" : "forbidden";
+        assert.equal((r.error as { code: string }).code, code);
+        await f.b.close();
+        const fresh = f.connect("fresh"),
+          registry = membership(f, fresh);
+        await assert.rejects(
+          registry.resolveResource(
+            f.caller,
+            f.resourcePolicy.resourceId,
+            "process",
+          ),
+          { code },
+        );
+        assert.equal((await registry.read(f.context)).revision, 3);
+        assert.deepEqual(await registry.readResourcePolicies(f.context), {
+          revision: 1,
+          policies: [f.resourcePolicy],
+        });
+        await scoped(fresh, f.context, async (tx) =>
+          assert.ok(verifyAudit(await tx.audits())),
+        );
+      } finally {
+        release.resolve();
+        await writer;
+        await pending?.catch(() => {});
+      }
+    },
+  );
+}
